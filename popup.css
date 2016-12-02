@@ -1,0 +1,73 @@
+.container{
+    
+    padding: 0;
+    margin: 0;
+    list-style: none;
+    
+    display: flex;
+    width: 410px;
+    
+    flex-flow: column;
+    align-items: flex-start;
+    
+}
+
+.item{
+    
+    width: 400px;
+    height: 80px;
+    margin-top: 10px;
+    
+    background: tomato;
+    padding: 5px;
+}
+
+.containersub{
+    
+    padding: 0;
+    margin: 0;
+    list-style: none;
+    
+    display: flex;
+    flex-flow: row;
+    justify-content: space-between;
+
+    width: inherit;
+    height: inherit;
+}
+
+.itemsub{
+    
+    width: 100px;
+    height: 70px;
+    
+    background: white;
+    padding: 5px;
+}
+
+#toggleadd{
+    
+  height: 40px;
+  margin-bottom: 5px;
+    
+  line-height: 40px;
+  color: white;
+  font-weight: bold;
+  font-size: 1em;
+  text-align: center;
+    
+    cursor: pointer;
+}
+
+#enterid{
+    
+  line-height: 20px;
+  font-weight: bold;
+  font-size: 1em;
+  margin-top: -2px;
+    
+  height: auto;
+    
+  display: none;
+}
+
