@@ -1,56 +1,50 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <meta content="text/html; charset=UTF-8" http-equiv="content-type">
+    <meta content='text/html; charset=UTF-8' http-equiv='content-type'>
     
-    <link href = "popup.css" type = "text/css" rel = "stylesheet">
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.0/jquery.min.js"></script>
-    <script src="storage.js"></script>
-    <script src="popup.js"></script>
-    <script src="ylinks.js"></script>
-    <script src="https://apis.google.com/js/client.js?onload=initgapi"></script>
+    <link href = 'popup.css' type = 'text/css' rel = 'stylesheet'>
+    <link href='https://fonts.googleapis.com/icon?family=Material+Icons' rel='stylesheet'>
+    
+    <script src='https://ajax.googleapis.com/ajax/libs/jquery/1.12.0/jquery.min.js'></script>
+    <script src='storage.js'></script>
+    <script src='popup.js'></script>
+    <script src='ylinks.js'></script>
+    <script src='https://apis.google.com/js/client.js?onload=initgapi'></script>
       
-    <title>popup.html</title>
+    <title>Popup</title>
   </head>
+    
   <body>
-    <ul class = "container">
-        <li class = "item">
-            <ul class = "containersub">
-                <li class = "itemsub">
-                    Pic
+    <ul class = 'container'>
+        
+        <li class = 'item'>
+            <ul class = 'containersub'>
+                <li class = 'itemsub channelThumbnail'>
+                    <img src = 'https://yt3.ggpht.com/-oVau7XMrdZ4/AAAAAAAAAAI/AAAAAAAAAAA/UQyORPY8O2c/s88-c-k-no-mo-rj-c0xffffff/photo.jpg'>
                 </li>
-                <li class = "itemsub">
-                    Desc
+                <li class = 'itemsub channelDescription'>
+                    Future House Music
                 </li>
-                <li class = "itemsub">
-                    But
+                <li class = 'itemsub buttonClipboard'>
+                    <i class="material-icons md-36">filter_1</i>
                 </li>
             </ul>         
         </li>
         
-         <li class = "item">
-            <ul class = "containersub">
-                <li class = "itemsub">
-                    Pic
+        <li class = 'item' id = 'enterLink'>
+            <ul class = 'containersub'>
+                <li class = 'itemsub' id='dummyThumbnail'>?</li>
+                <li class='itemsub' id='linkInputContainer'>
+                    <input type='text' id='linkInput'>
                 </li>
-                <li class = "itemsub">
-                    Desc
-                </li>
-                <li class = "itemsub">
-                    But
+                <li class='itemsub' id='buttonAddContainer'>
+                    <i class='material-icons md-36 red'>playlist_add</i>
                 </li>
             </ul>         
         </li>
         
-        <li id = "toggleadd" class = "item">
-            Add Channel
-        </li>
-        
-        <li id = "enterid" class = "item">
-            Channel ID
-            <input type = "text" id = "channelid">
-            <button type = "submit" id = "buttonadd">Add</button>
-        </li>
+        <li class='item' id='toggleAdd'>Add Channel</li>
         
     </ul>
   </body>

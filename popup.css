@@ -1,3 +1,8 @@
+html, body{
+    
+    background-color: #f1f1f1;
+}
+
 .container{
     
     padding: 0;
@@ -10,16 +15,19 @@
     flex-flow: column;
     align-items: flex-start;
     
+    font-family: Roboto,arial,sans-serif;
 }
 
 .item{
     
     width: 400px;
-    height: 80px;
+    height: 88px;
     margin-top: 10px;
     
-    background: tomato;
+    background-color: #ffffff;
     padding: 5px;
+    
+    -webkit-box-shadow: 0px 0px 15px -2px rgba(117,117,117,1);
 }
 
 .containersub{
@@ -30,44 +38,125 @@
     
     display: flex;
     flex-flow: row;
-    justify-content: space-between;
-
-    width: inherit;
-    height: inherit;
+    justify-content: flex-start;
 }
 
 .itemsub{
     
     width: 100px;
-    height: 70px;
+    height: 88px;
     
     background: white;
-    padding: 5px;
+    margin-right: 5px;
+    
+    color: #333;
+    font-size: 20px;
+    font-weight: 500;
 }
 
-#toggleadd{
+.channelThumbnail{
     
-  height: 40px;
-  margin-bottom: 5px;
+    width: 88px;
+}
+
+.channelDescription{
     
-  line-height: 40px;
-  color: white;
-  font-weight: bold;
-  font-size: 1em;
-  text-align: center;
+    width: 58%;
+}
+
+.buttonClipboard{
     
+    width: 70px;
+    margin-right: 0px;
+    
+    background-color: #a5a5a5;
     cursor: pointer;
 }
 
-#enterid{
+#toggleAdd{
     
-  line-height: 20px;
-  font-weight: bold;
-  font-size: 1em;
-  margin-top: -2px;
+    height: 40px;
+    margin-bottom: 5px;
+
+    line-height: 40px;
+    font-weight: bold;
+    font-size: 1em;
+    text-align: center;
+    cursor: pointer;
+}
+
+#enterLink{
     
-  height: auto;
+    margin-bottom: -5px;
+    display: none;
+}
+
+#dummyThumbnail{
     
-  display: none;
+    width: 84px;
+    height: 85px;
+    
+    background-color: #ededed;
+    border: 2px dotted #bababa;
+    border-radius: 3px;
+    
+    line-height: 85px;
+    font-weight: bold;
+    color: dimgray;
+    font-size: 1em;
+    text-align: center;
+}
+
+#linkInputContainer{
+    
+    width: 58%;
+}
+
+#linkInput{
+    
+    position: relative;
+    margin-left: 0px;
+    
+    width: 98%;
+    height: 18px;
+    
+    top: 50%;
+    transform: translate(0, -50%);
+}
+
+#buttonAddContainer{
+    
+    width: 70px;
+    margin-right: 0px;
+    
+    background-color: #a5a5a5;
+    cursor: pointer;
+    
+}
+
+#buttonAdd{
+    
+    
+}
+
+/******************/
+/* Material Icons */
+/******************/
+
+.material-icons.md-36 { 
+    font-size: 36px; 
+}
+
+.material-icons.red{
+    color: #e62117;
+}
+
+.material-icons{
+    
+    position:relative;
+    
+    top: 50%;
+    left: 25%;
+    transform: translate(0, -50%);
 }
 

@@ -1,60 +1,54 @@
 $(document).ready(function(){
     
-    chrome.storage.sync.set({"copyHistory": [{"channelID": 'channel/UCXvSeBDvzmPO05k-0RyB34w',
-                                              "videolinks": ['5Tq3ahL0JAs','R5xzM9RZN3o']
-                                            }] }, function(){
-        
-        chrome.storage.sync.set({"subscriptions": ['channel/UCXvSeBDvzmPO05k-0RyB34w', 
-                                               'user/SelectedBase']}, function(){
-            
-            chrome.storage.sync.set({"links": [{"channelID": 'channel/UCXvSeBDvzmPO05k-0RyB34w',
-                                                "videoLinks": [] },
-                                              {"channelID": 'channel/UCXvSeBDvz',
-                                                "videoLinks": ["uhsegkjhsjkdg","uzbasedl"] }]}, function(){
-
-                // Init storage
-                init();
-            });
-
-        });
-                                     
-    });
-    
     // Set Listener's
-    $("#toggleadd").click(function(){
+    $("li#toggleAdd").click(function(){
         console.log("clicked"); 
         toggleadd();
     });
     
-    $("button#buttonadd").click(function(){
-        addChannel($("input#channelid").val());
+    $("li#buttonAddContainer").click(function(){
+        addChannel($("input#linkInput").val());
     });
+    
+    
     
 });
 
 function onGapiLoad(){
     
-    //getVideos('UCFZ75Bg73NJnJgmeUX9l62g', function(videos){
-        //console.info(videos);
-        //$.each(videos, function(i, video){
-           //console.info(video); 
-        //});
-    //});
+    getChannelInfo('UCXvSeBDvzmPO05k-0RyB34w', function(info){
+        console.log(info);
+    });
     
+}
+
+function getChannelInfo(id, callback){
+    
+    var snippetRequest = gapi.client.request({
+        'path': 'https://www.googleapis.com/youtube/v3/channels',
+        'params': {
+          'part': 'snippet',
+          'id': id,
+        }
+    });
+    
+    snippetRequest.execute(function(data){
+        callback(data);
+    });
 }
 
 function toggleadd(){
     
-    var $buttonadd = $("li#toggleadd");
-    var $enterid = $("li#enterid");
+    var $buttonadd = $("li#toggleAdd");
+    var $enterLink = $("li#enterLink");
     
-    if( $enterid.css("display") == "none" ){
+    if( $enterLink.css("display") == "none" ){
         $buttonadd.text("Cancel");  
     }else{
         $buttonadd.text("Add Channel");
     }
     
-    $("#enterid").slideToggle(500, function(){
-        $("input#channelid").val("");
+    $enterLink.slideToggle(500, function(){
+        $("input#linkInput").val("");
     });
 }
