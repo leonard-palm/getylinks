@@ -10,31 +10,31 @@ $(document).ready(function(){
         addChannel($("input#linkInput").val());
     });
     
-    
-    
 });
 
-function onGapiLoad(){
+function displaySubscriptions(subscriptions){
     
-    getChannelInfo('UCXvSeBDvzmPO05k-0RyB34w', function(info){
-        console.log(info);
+    var container = $("ul#subscriptionContainer");
+    
+    if(!subscriptions || subscriptions.length == 0){
+        insertDummySub(container);
+        return;
+    }
+    
+    $.each(subscriptions, function(i, sub){
+        var element = $("<li class = 'item'><ul class = 'containersub'><li class = 'itemsub'>Pic</li><li class = 'itemsub'>Desc</li><li class = 'itemsub'>But</li></ul></li>");
+        
+        container.prepend(element);
     });
-    
 }
 
-function getChannelInfo(id, callback){
+function insertDummySub(container){
     
-    var snippetRequest = gapi.client.request({
-        'path': 'https://www.googleapis.com/youtube/v3/channels',
-        'params': {
-          'part': 'snippet',
-          'id': id,
-        }
-    });
-    
-    snippetRequest.execute(function(data){
-        callback(data);
-    });
+    container.prepend( $('<li/>',{
+        text    : 'No Subscriptions',
+        'class' : 'item',
+        'id'    : 'dummySubscription'
+    })); 
 }
 
 function toggleadd(){

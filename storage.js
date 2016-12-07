@@ -1,105 +1,103 @@
-function initStorage(callback){
+function initStorage(onCompleteInit){
     
-    //check if "subscriptions" exists
-    chrome.storage.sync.get("subscriptions", function(data){
-        if(!data.subscriptions){
-            chrome.storage.sync.set({"subscriptions":[]}, function(){
-               if(!chrome.runtime.lastError){
-                   console.info("Initialized 'subscriptions'");
-               }else{
-                   console.info("Failed to initialize 'subscriptions'");
-               } 
+    
+    var initialSubscriptions = [];
+    var initialLinks = [];
+    var initialCopyHistory = [];
+    
+    var initialStorage = {"ylinks": {"subscriptions" : initialSubscriptions,
+                                     "links"         : initialLinks,
+                                     "copyHistory"   : initialCopyHistory}};
+    
+    chrome.storage.sync.get("ylinks", function(data){
+
+        if(!data.ylinks){
+            chrome.storage.sync.set({"ylinks": initialStorage.ylinks}, function(){
+
+                if(chrome.runtime.lastError){
+                    onCompleteInit(1);
+                }else{
+                    //adjustStorage(initialStorage, function(retcode){
+                      //  onCompleteInit(retcode);
+                    //});
+                    onCompleteInit(0);
+                }
             });
         }else{
-            console.info("subscriptions:");
-            console.info(data.subscriptions);
+            adjustStorage(data, function(retcode){
+                onCompleteInit(retcode);
+            });
+        } 
+    });
+    
+}
+
+function adjustStorage(data, onCompleteAdjust){
+       
+    if(!data || !data.ylinks){
+        onCompleteAdjust(1);
+        return;
+    }
+
+    var subscriptions = data.ylinks.subscriptions;
+    var links = data.ylinks.links;
+    var copyHistory = data.ylinks.copyHistory;
+
+    $.each(subscriptions, function(i, sub){
+
+        //Add missing key-entries to "ylinks.links"
+        if( !links.find(link => link.channelID == sub) ){
+            links.push({"channelID": sub,
+                        "videoLinks": []});
         }
-        
-        //check if "links" exists
-        chrome.storage.sync.get("links", function(data){
-            if(!data.links){
-               chrome.storage.sync.set({"links": [] }, function(){
-                   if(!chrome.runtime.lastError){
-                       console.info("Initialized 'links'");
-                   }else{
-                       console.info("Failed to initialize 'links'");
-                   }
-               });
-            } else{
-               console.info("links:");
-               console.info(data.links);
-            }
-            
-            //check if "copy_history" exists
-            chrome.storage.sync.get("copyHistory", function(data){
-               if(!data.copyHistory){
-                   chrome.storage.sync.set({"copyHistory": [{}]}, function(){
-                      if(!chrome.runtime.lastError){
-                          console.info("Initialized 'copyHistory'");
-                      }else{
-                          console.info("Failed to initialize 'copyHistory'");
-                      }
-                   });
-               }else{
-                   console.info("copyHistory:");
-                   console.info(data.copyHistory);
-               } 
-            });
 
-            callback();
-            
-        });
-        
+        //Add missing key-entries to "ylinks.copyHistory"
+        if( !copyHistory.find( cpHist => cpHist.channelID == sub) ){
+            copyHistory.push({"channelID": sub, 
+                              "videoLinks": []});
+        }
+    });
+
+    //Remove outworn key-entries from "ylinks.links"
+    links = links.filter(function(linksEntry){
+        return subscriptions.indexOf(linksEntry.channelID) >= 0;
     });
     
+    //Remove outworn key-entries from "ylinks.copyHistory"
+    copyHistory = copyHistory.filter(function(cpHistEntry){
+       return subscriptions.indexOf(cpHistEntry.channelID) >= 0; 
+    });
+    
+    //Clear previously selected video links from "ylinks.links"
+    $.each(links, function(i, linksEntry){
+       linksEntry.videoLinks = []; 
+    });
+    
+    data.ylinks.subscriptions = subscriptions;
+    data.ylinks.links = links;
+    data.ylinks.copyHistory = copyHistory;
+    
+    chrome.storage.sync.set({"ylinks": data.ylinks}, function(){
+        
+        console.out("Adjusted storage.");
+        console.out(data.ylinks);
+        
+        onCompleteAdjust( (chrome.runtime.lastError) ? 1 : 0 );
+    });
 }
 
-function adjustStorage(){
-    
-    chrome.storage.sync.get("subscriptions", function(data){
-        
-        if(!data.subscriptions || data.subscriptions.length < 1) return; 
-        
-        var subs = data.subscriptions;
-        
-        chrome.storage.sync.get("links", function(data){
-            
-            if(!data.links || data.links.length < 1) return;
-            
-            //Add missing array key-sets of new subscriptions to "links"
-            $.each(subs, function(i, sub){
-               if( !data.links.find(link => link.channelID == sub) ){
-                   data.links.push({"channelID": sub,
-                                    "videoLinks": []});
-               } 
-            });
-            
-            //Remove outworn key-sets of subscriptions in "links"
-            $.each(data.links, function(i, link){
-               if(subs.indexOf(links.channelID) == -1){
-                   data.links.splice(i, 1);
-               } 
-            });
-            
-            chrome.storage.sync.set({"links":data.links}, function(){
-                printStorageObject("subscriptions");
-                printStorageObject("links");
-            });
-            
-        });
-        
+chrome.storage.getYLinks = function(onRead){
+    chrome.storage.sync.get("ylinks", function(data){
+        onRead( (data.ylinks) ? data.ylinks : undefined );
     });
-    
-    
-    
-    //Remove old subscription keys-sets in "links" 
-    
-    
-    
 }
 
-function printStorageObject(name){
-    chrome.storage.sync.get(name, function(data){
-       console.info(data); 
+chrome.storage.updateYLinks = function(data, onUpdate){
+    chrome.storage.sync.set({"ylinks": data}, function(){
+        onUpdate( (chrome.runtime.lastError) ? 0 : 1 );
     });
+}
+
+console.out = function(data){
+    console.info(JSON.parse(JSON.stringify(data)));
 }
