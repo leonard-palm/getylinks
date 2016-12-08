@@ -17,14 +17,14 @@ function initStorage(onCompleteInit){
                 if(chrome.runtime.lastError){
                     onCompleteInit(1);
                 }else{
-                    //adjustStorage(initialStorage, function(retcode){
+                    //adjustStorage(initialStorage.ylinks, function(retcode){
                       //  onCompleteInit(retcode);
                     //});
                     onCompleteInit(0);
                 }
             });
         }else{
-            adjustStorage(data, function(retcode){
+            adjustStorage(data.ylinks, function(retcode){
                 onCompleteInit(retcode);
             });
         } 
@@ -32,16 +32,16 @@ function initStorage(onCompleteInit){
     
 }
 
-function adjustStorage(data, onCompleteAdjust){
+function adjustStorage(ylinks, onCompleteAdjust){
        
-    if(!data || !data.ylinks){
+    if(!ylinks){
         onCompleteAdjust(1);
         return;
     }
 
-    var subscriptions = data.ylinks.subscriptions;
-    var links = data.ylinks.links;
-    var copyHistory = data.ylinks.copyHistory;
+    var subscriptions = ylinks.subscriptions;
+    var links = ylinks.links;
+    var copyHistory = ylinks.copyHistory;
 
     $.each(subscriptions, function(i, sub){
 
@@ -73,14 +73,14 @@ function adjustStorage(data, onCompleteAdjust){
        linksEntry.videoLinks = []; 
     });
     
-    data.ylinks.subscriptions = subscriptions;
-    data.ylinks.links = links;
-    data.ylinks.copyHistory = copyHistory;
+    ylinks.subscriptions = subscriptions;
+    ylinks.links = links;
+    ylinks.copyHistory = copyHistory;
     
-    chrome.storage.sync.set({"ylinks": data.ylinks}, function(){
+    chrome.storage.sync.set({"ylinks": ylinks}, function(){
         
         console.out("Adjusted storage.");
-        console.out(data.ylinks);
+        console.out(ylinks);
         
         onCompleteAdjust( (chrome.runtime.lastError) ? 1 : 0 );
     });
@@ -92,9 +92,14 @@ chrome.storage.getYLinks = function(onRead){
     });
 }
 
-chrome.storage.updateYLinks = function(data, onUpdate){
-    chrome.storage.sync.set({"ylinks": data}, function(){
-        onUpdate( (chrome.runtime.lastError) ? 0 : 1 );
+chrome.storage.updateYLinks = function(ylinks, onUpdate){
+    chrome.storage.sync.set({"ylinks": ylinks}, function(){
+        if(chrome.runtime.lastError){
+            console.error("Failed to update Storage.")
+            onUpdate(1);
+        }else{
+            onUpdate(0);
+        }
     });
 }
 

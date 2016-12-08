@@ -22,10 +22,10 @@ function init(){
                 });
                     
                 //Scan for new Videos published by my Subscriptions
-                scan(function(retcode){
+                //scan(function(retcode){
                     
-                    console.out("Scanning Subs finished with return code " + retcode + ".");
-                });
+                    //console.out("Scanning Subs finished with return code " + retcode + ".");
+                //});
                 
             }
         
@@ -40,16 +40,19 @@ function scan(onCompleteScan){
     
     chrome.storage.getYLinks(function(ylinks){
         
-        if(!ylinks || ylinks.subscriptions.length <= 0){
+        if(!ylinks){
             onCompleteScan(1);
+            return;
+        }else if(ylinks.subscriptions.length <= 0){
+            onCompleteScan(0);
             return;
         } 
         
         getVideos(ylinks.subscriptions, 0, ylinks.subscriptions[0], ylinks.links , function(retcode, links){
         
             if(retcode == 0){
-                chrome.storage.updateYLinks(ylinks, function(){
-                    onCompleteScan(0);
+                chrome.storage.updateYLinks(ylinks, function(retcode){
+                    onCompleteScan(retcode);
                 });
             }else{
                 onCompleteScan(1);
@@ -76,29 +79,54 @@ function addChannel(channelLink){
     
     channelID = channelLink.substring(channelLink.lastIndexOf('/')+1, channelLink.length);
     
-    getChannelInfo(channelID, channelType, function(info){
-        if(info){
-            console.out(info);
-            chrome.storage.getYLinks(function(ylinks){
-                ylinks.subscriptions.push(info.id);
-                chrome.storage.updateYLinks(ylinks, function(retcode){
+    chrome.storage.getYLinks(function(ylinks){
+       
+        if(!ylinks || ylinks.subscriptions.indexOf(channelID) >= 0) return;
+        
+        getChannelInfo(channelID, channelType, function(info){
+
+            ylinks.subscriptions.push(info.id);
+
+            chrome.storage.updateYLinks(ylinks, function(retcode){
+                
+                if(retcode > 0) return;
+                    
+                adjustStorage(ylinks, function(retcode){
+
                     if(retcode == 0){
-                        adjustStorage(ylinks, function(retcode){
-                            if(retcode == 0){
-                                console.out("Added channel to storage and adjusted it successfully.");
-                                displaySubscriptions(ylinks.subscriptions);
-                            }else{
-                                console.out("Failed to adjust new Storage.")
-                            }
-                        }); 
+                        console.out("Added channel to storage and adjusted it successfully.");
+                        displaySubscriptions(ylinks.subscriptions);
                     }else{
-                        console.out("Failed to update Storage.")
+                        console.out("Failed to adjust new Storage.")
                     }
-                });
-            });   
-        }else{
-            console.out("No channel info found for " + channelID + "(Type: " + channelType + ")");
-        }
+                }); 
+                
+            });  
+            
+        });
+        
+    });
+    
+}
+
+function removeChannel(channelID){
+    
+    chrome.storage.getYLinks(function(ylinks){
+        
+        if(!ylinks) return;
+        
+        ylinks.splice( ylinks.subscriptions.indexOf(channelID), 1);
+        
+        adjustStorage(ylinks, function(retcode){
+           
+            if(retcode === 0){
+                console.log("Removed channel successfully.");
+            }else{
+                console.error("Failed to remove channel.")
+            }
+            
+        });
+        
     });
     
 }
@@ -133,9 +161,10 @@ function getChannelInfo(channelID, channelType, onInfoGET){
     infoRequest.execute(function(data){
         if(data.error){
             console.out(data.error);
-            onInfoGET(undefined);
+        }else if(data.items.length <= 0){
+            console.log("No channel info found.");
         }else{
-            onInfoGET( (data.items.length > 0) ? data.items[0] : undefined);
+            onInfoGET(data.items[0]);
         }
     });
 }

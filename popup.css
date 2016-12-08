@@ -85,6 +85,23 @@ html, body{
     cursor: pointer;
 }
 
+#dummySubscription{
+    
+    height: 250px;
+    background: #e5e5e5;
+    padding: 5px;
+    
+    border: thin dashed #adadad;
+    border-radius: 10px;
+    border-width: 2px;
+        
+    line-height: 250px;
+    color: dimgrey;
+    font-weight: bold;
+    font-size: 1em;
+    text-align: center;
+}
+
 #enterLink{
     
     margin-bottom: -5px;
