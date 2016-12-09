@@ -2,8 +2,9 @@ $(document).ready(function(){
     
     // Set Listener's
     $("li#toggleAdd").click(function(){
-        console.log("clicked"); 
-        toggleadd();
+        toggleadd(function(){
+            console.log("Insert block toggled successfully.")
+        });
     });
     
     $("li#buttonAddContainer").click(function(){
@@ -14,17 +15,24 @@ $(document).ready(function(){
 
 function displaySubscriptions(subscriptions){
     
-    var container = $("ul#subscriptionContainer");
+    var subElements = $();
     
     if(!subscriptions || subscriptions.length == 0){
-        insertDummySub(container);
-        return;
+        insertDummySub(function(){
+            return; 
+        });
     }
     
     $.each(subscriptions, function(i, subEntry){
-        var element = $("<li class = 'item'><ul class = 'containersub'><li class = 'itemsub channelThumbnail'><img src = '"+subEntry.info.thumbnails.default+"'></li><li class = 'itemsub channelDescription'>"+subEntry.info.localized.title+"</li><li class = 'itemsub buttonClipboard'><i class='material-icons md-36'>filter_1</i></li></ul></li>");
+        var element = $("<li class = 'item' subID = '"+subEntry.id+"' style = 'display:none;'><ul class = 'containersub'><li class = 'itemsub channelThumbnail'><img src = '"+subEntry.info.thumbnail+"'></li><li class = 'itemsub channelDescription'>"+subEntry.info.title+"</li><li class = 'itemsub buttonClipboard'><i class='material-icons md-36'>filter_1</i></li></ul></li>");
         
-        container.prepend(element);
+        subElements = subElements.add(element);
+    });
+    
+    $("ul#subscriptionContainer").prepend(subElements);
+    
+    $("li.item").filter(function(){return $(this).attr("subID") != undefined}).slideToggle(500, function(){
+        console.log('Displayed subs successfully.')
     });
 }
 
@@ -35,30 +43,54 @@ function insertNewSub(sub){
         return;
     }
     
-    var element = $("<li class = 'item'><ul class = 'containersub'><li class = 'itemsub channelThumbnail'><img src = '"+sub.info.thumbnails.default+"'></li><li class = 'itemsub channelDescription'>"+sub.info.localized.title+"</li><li class = 'itemsub buttonClipboard'><i class='material-icons md-36'>filter_1</i></li></ul></li>");
+    var element = $("<li class = 'item' subID = '"+sub.id+"' style = 'display:none;'><ul class = 'containersub'><li class = 'itemsub channelThumbnail'><img src = '"+sub.info.thumbnail+"'></li><li class = 'itemsub channelDescription'>"+sub.info.title+"</li><li class = 'itemsub buttonClipboard'><i class='material-icons md-36'>filter_1</i></li></ul></li>");
     
-    $("ul#subscriptionContainer").prepend(element);
+    element.insertBefore($("li#enterLink"));
     
-    console.info(sub.info.thumbnails.default);
-    
-    console.log('Inserted new sub successfully.');
+    $("li[subID = '"+sub.id+"']").slideToggle(500, function(){
+        console.log('Inserted new sub successfully.'); 
+    });
 }
 
-function insertDummySub(container){
+function removeOldSub(channelID, onFinish){
     
-    container.prepend( $('<li/>',{
+    var oldSub = $("li[subID = '"+channelID+"']");
+    
+    oldSub.slideToggle(500, function(){
+        oldSub.remove();
+        onFinish();
+    });
+}
+
+function insertDummySub(onFinish){
+    
+    $("ul#subscriptionContainer").prepend( $('<li/>',{
         text    : 'No Subscriptions',
         'class' : 'item',
-        'id'    : 'dummySubscription'
+        'id'    : 'dummySubscription',
+        'style' : 'display:none;'
     })); 
-}
-
-function removeDummySub(){
     
-    $('li#dummySubscription').remove();
+    $("li#dummySubscription").slideToggle(500, function(){
+        onFinish();
+    });
 }
 
-function toggleadd(){
+function removeDummySub(onFinish){
+    
+    var dummySub = $('li#dummySubscription');
+    
+    if(dummySub == undefined){
+        onFinish();
+    }else{
+        dummySub.slideToggle(500, function(){
+            dummySub.remove();
+            onFinish();
+        });
+    }
+}
+
+function toggleadd(onFinish){
     
     var $buttonadd = $("li#toggleAdd");
     var $enterLink = $("li#enterLink");
@@ -71,5 +103,6 @@ function toggleadd(){
     
     $enterLink.slideToggle(500, function(){
         $("input#linkInput").val("");
+        onFinish();
     });
 }

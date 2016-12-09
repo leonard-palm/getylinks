@@ -82,7 +82,8 @@ function addChannel(channelLink){
         getChannelInfo(channelID, channelType, function(info){
             
             var newSub = {'id'  : info.id,
-                          'info': info.snippet};
+                          'info': {'title': info.snippet.title,
+                                   'thumbnail': info.snippet.thumbnails.default.url}};
             
             ylinks.subscriptions.push(newSub);
                     
@@ -92,7 +93,9 @@ function addChannel(channelLink){
                     console.log('Added channel successfully (ID:'+channelID+').');
                     
                     removeDummySub();
-                    insertNewSub(newSub);
+                    toggleadd(function(){
+                        insertNewSub(newSub); 
+                    });
                 }else{
                     console.error('Adding channel failed (ID:'+channelID+').');
                 }
@@ -108,14 +111,24 @@ function removeChannel(channelID){
     
     chrome.storage.getYLinks(function(ylinks){
         
-        if(!ylinks || ylinks.subscriptions.indexOf(channelID) < 0 ) return;
+        if(!ylinks || subsContain(ylinks.subscriptions, channelID) == false) return;
         
-        ylinks.subscriptions.splice( ylinks.subscriptions.indexOf(channelID), 1);
+        ylinks.subscriptions.splice(ylinks.subscriptions.findIndex(s => s.id === channelID), 1);
         
         adjustStorage(ylinks, function(retcode){
            
             if(retcode === 0){
-                console.log('Channel removed successfully (ID:'+channelID+').');
+                
+                removeOldSub(channelID, function(){
+                    console.log('Channel removed successfully (ID:'+channelID+').');
+                    
+                    if(ylinks.subscriptions.length <= 0){
+                        
+                        insertDummySub(function(){
+                            console.log('Inserted dummy sub successfully.')
+                        });
+                    }
+                });
             }else{
                 console.error('Removal of channel failed (ID:'+channelID+').')
             }
@@ -211,43 +224,3 @@ function getSubByID(subscriptions, id){
 function subsContain(subscriptions, id){
     return getSubByID(subscriptions, id) != undefined;
 }
-                            
-
-                            
-                            
-                            
-                            
-                            
-                            
-                            
-                            
-                            
-                            
-                            
-                            
-                            
-                            
-                            
-                            
-                            
-                            
-                            
-                            
-                            
-                            
-                            
-                            
-                            
-                            
-                            
-                            
-                            
-                            
-                            
-                            
-                            
-                            
-                            
-                            
-                            
-                            
