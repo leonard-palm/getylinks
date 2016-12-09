@@ -12,22 +12,13 @@ function init(){
         //Initialize Storage Object's and Array's
         initStorage(function(retcode){
             
-            if(retcode == 1){
-                console.out("Failed to initialize Storage.");
-            }else{
-                
-                //Display Subscriptions on Popup
-                chrome.storage.getYLinks(function(ylinks){
-                    displaySubscriptions(ylinks.subscriptions)
-                });
-                    
-                //Scan for new Videos published by my Subscriptions
-                //scan(function(retcode){
-                    
-                    //console.out("Scanning Subs finished with return code " + retcode + ".");
-                //});
-                
-            }
+            //Display Subscriptions on Popup
+            chrome.storage.getYLinks(function(ylinks){
+                displaySubscriptions(ylinks.subscriptions);
+            });
+
+            //Scan for new Videos published by my Subscriptions
+            //scan(function(){});
         
         });
         
@@ -48,14 +39,19 @@ function scan(onCompleteScan){
             return;
         } 
         
-        getVideos(ylinks.subscriptions, 0, ylinks.subscriptions[0], ylinks.links , function(retcode, links){
+        getVideos(ylinks.subscriptions, 0, ylinks.subscriptions[0].id, ylinks.links , function(retcode, links){
         
-            if(retcode == 0){
+            if(retcode === 0){
                 chrome.storage.updateYLinks(ylinks, function(retcode){
-                    onCompleteScan(retcode);
+                    if(retcode === 0){
+                        console.log('Scanning finished successfull.');
+                        onCompleteScan();
+                    }else{
+                        console.error('Scanning failed.');
+                    }
                 });
             }else{
-                onCompleteScan(1);
+                console.error('Scanning failed.');
             }
             
         });
@@ -81,27 +77,26 @@ function addChannel(channelLink){
     
     chrome.storage.getYLinks(function(ylinks){
        
-        if(!ylinks || ylinks.subscriptions.indexOf(channelID) >= 0) return;
+        if(!ylinks || subsContain(ylinks.subscriptions, channelID) ) return;
         
         getChannelInfo(channelID, channelType, function(info){
-
-            ylinks.subscriptions.push(info.id);
-
-            chrome.storage.updateYLinks(ylinks, function(retcode){
-                
-                if(retcode > 0) return;
+            
+            var newSub = {'id'  : info.id,
+                          'info': info.snippet};
+            
+            ylinks.subscriptions.push(newSub);
                     
-                adjustStorage(ylinks, function(retcode){
+            adjustStorage(ylinks, function(retcode){
 
-                    if(retcode == 0){
-                        console.out("Added channel to storage and adjusted it successfully.");
-                        displaySubscriptions(ylinks.subscriptions);
-                    }else{
-                        console.out("Failed to adjust new Storage.")
-                    }
-                }); 
-                
-            });  
+                if(retcode == 0){
+                    console.log('Added channel successfully (ID:'+channelID+').');
+                    
+                    removeDummySub();
+                    insertNewSub(newSub);
+                }else{
+                    console.error('Adding channel failed (ID:'+channelID+').');
+                }
+            }); 
             
         });
         
@@ -113,16 +108,16 @@ function removeChannel(channelID){
     
     chrome.storage.getYLinks(function(ylinks){
         
-        if(!ylinks) return;
+        if(!ylinks || ylinks.subscriptions.indexOf(channelID) < 0 ) return;
         
-        ylinks.splice( ylinks.subscriptions.indexOf(channelID), 1);
+        ylinks.subscriptions.splice( ylinks.subscriptions.indexOf(channelID), 1);
         
         adjustStorage(ylinks, function(retcode){
            
             if(retcode === 0){
-                console.log("Removed channel successfully.");
+                console.log('Channel removed successfully (ID:'+channelID+').');
             }else{
-                console.error("Failed to remove channel.")
+                console.error('Removal of channel failed (ID:'+channelID+').')
             }
             
         });
@@ -160,10 +155,10 @@ function getChannelInfo(channelID, channelType, onInfoGET){
     
     infoRequest.execute(function(data){
         if(data.error){
-            console.out(data.error);
-        }else if(data.items.length <= 0){
-            console.log("No channel info found.");
+            console.error('GET channelinfo failed (ID:'+channelID+').');
+            console.error(data.error);
         }else{
+            console.log('GET channelinfo was successfull (ID:'+channelID+').');
             onInfoGET(data.items[0]);
         }
     });
@@ -184,7 +179,10 @@ function getVideos(subscriptions, i, channelID, links, onComplete) {
     requestPlaylist.execute(function(data){
         
         //Got Error
-        if(data.error) onComplete(1, links);
+        if(data.error){
+            console.error('GET videos at "'+channelID+'" failed.');
+            onComplete(1, links);   
+        }
         
         //Fill local links
         var storageLinkIndex = links.findIndex(link => link.channelID == channelID);
@@ -197,14 +195,22 @@ function getVideos(subscriptions, i, channelID, links, onComplete) {
         
         //Next channel
         if( (i+1) < subscriptions.length ){
-            getVideos(subscriptions, (i+1), subscriptions[(i+1)], links, onComplete);
+            getVideos(subscriptions, (i+1), subscriptions[(i+1)].id, links, onComplete);
         }else{
+            console.log('GET videos finished successfully.');
             onComplete(0, links);
         }
     });
     
 };
-                            
+  
+function getSubByID(subscriptions, id){
+    return subscriptions.find( sub => sub.id === id );
+}
+
+function subsContain(subscriptions, id){
+    return getSubByID(subscriptions, id) != undefined;
+}
                             
 
                             

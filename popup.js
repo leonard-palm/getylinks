@@ -21,11 +21,27 @@ function displaySubscriptions(subscriptions){
         return;
     }
     
-    $.each(subscriptions, function(i, sub){
-        var element = $("<li class = 'item'><ul class = 'containersub'><li class = 'itemsub'>Pic</li><li class = 'itemsub'>Desc</li><li class = 'itemsub'>But</li></ul></li>");
+    $.each(subscriptions, function(i, subEntry){
+        var element = $("<li class = 'item'><ul class = 'containersub'><li class = 'itemsub channelThumbnail'><img src = '"+subEntry.info.thumbnails.default+"'></li><li class = 'itemsub channelDescription'>"+subEntry.info.localized.title+"</li><li class = 'itemsub buttonClipboard'><i class='material-icons md-36'>filter_1</i></li></ul></li>");
         
         container.prepend(element);
     });
+}
+
+function insertNewSub(sub){
+    
+    if(!sub){
+        console.error('Insertion of new sub failed (sub undefined).');
+        return;
+    }
+    
+    var element = $("<li class = 'item'><ul class = 'containersub'><li class = 'itemsub channelThumbnail'><img src = '"+sub.info.thumbnails.default+"'></li><li class = 'itemsub channelDescription'>"+sub.info.localized.title+"</li><li class = 'itemsub buttonClipboard'><i class='material-icons md-36'>filter_1</i></li></ul></li>");
+    
+    $("ul#subscriptionContainer").prepend(element);
+    
+    console.info(sub.info.thumbnails.default);
+    
+    console.log('Inserted new sub successfully.');
 }
 
 function insertDummySub(container){
@@ -35,6 +51,11 @@ function insertDummySub(container){
         'class' : 'item',
         'id'    : 'dummySubscription'
     })); 
+}
+
+function removeDummySub(){
+    
+    $('li#dummySubscription').remove();
 }
 
 function toggleadd(){

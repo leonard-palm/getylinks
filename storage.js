@@ -9,23 +9,27 @@ function initStorage(onCompleteInit){
                                      "links"         : initialLinks,
                                      "copyHistory"   : initialCopyHistory}};
     
+    
     chrome.storage.sync.get("ylinks", function(data){
 
         if(!data.ylinks){
             chrome.storage.sync.set({"ylinks": initialStorage.ylinks}, function(){
 
-                if(chrome.runtime.lastError){
-                    onCompleteInit(1);
+                if(!chrome.runtime.lastError){
+                    console.log('Initialization of storage finished successfully.');
+                    onCompleteInit();
                 }else{
-                    //adjustStorage(initialStorage.ylinks, function(retcode){
-                      //  onCompleteInit(retcode);
-                    //});
-                    onCompleteInit(0);
+                    console.error('Initialization of storage failed.');
                 }
             });
         }else{
             adjustStorage(data.ylinks, function(retcode){
-                onCompleteInit(retcode);
+                if(retcode === 0){
+                    console.log('Initialization of storage finished successfully.');
+                    onCompleteInit();
+                }else{
+                    console.error('Initialization of storage failed.');
+                }
             });
         } 
     });
@@ -43,29 +47,31 @@ function adjustStorage(ylinks, onCompleteAdjust){
     var links = ylinks.links;
     var copyHistory = ylinks.copyHistory;
 
-    $.each(subscriptions, function(i, sub){
+    $.each(subscriptions, function(i, subEntry){
 
         //Add missing key-entries to "ylinks.links"
-        if( !links.find(link => link.channelID == sub) ){
-            links.push({"channelID": sub,
+        if( !links.find(link => link.channelID == subEntry.id) ){
+            links.push({"channelID": subEntry.id,
                         "videoLinks": []});
         }
 
         //Add missing key-entries to "ylinks.copyHistory"
-        if( !copyHistory.find( cpHist => cpHist.channelID == sub) ){
-            copyHistory.push({"channelID": sub, 
+        if( !copyHistory.find( cpHist => cpHist.channelID == subEntry.id) ){
+            copyHistory.push({"channelID": subEntry.id, 
                               "videoLinks": []});
         }
     });
 
     //Remove outworn key-entries from "ylinks.links"
     links = links.filter(function(linksEntry){
-        return subscriptions.indexOf(linksEntry.channelID) >= 0;
+        return subsContain(subscriptions, linksEntry.channelID);
+        //return subscriptions.indexOf(linksEntry.channelID) >= 0;
     });
     
     //Remove outworn key-entries from "ylinks.copyHistory"
     copyHistory = copyHistory.filter(function(cpHistEntry){
-       return subscriptions.indexOf(cpHistEntry.channelID) >= 0; 
+        return subsContain(subscriptions, cpHistEntry.channelID);
+       //return subscriptions.indexOf(cpHistEntry.channelID) >= 0; 
     });
     
     //Clear previously selected video links from "ylinks.links"
@@ -77,32 +83,41 @@ function adjustStorage(ylinks, onCompleteAdjust){
     ylinks.links = links;
     ylinks.copyHistory = copyHistory;
     
-    chrome.storage.sync.set({"ylinks": ylinks}, function(){
-        
-        console.out("Adjusted storage.");
-        console.out(ylinks);
-        
-        onCompleteAdjust( (chrome.runtime.lastError) ? 1 : 0 );
+    chrome.storage.updateYLinks(ylinks, function(retcode){
+        if(retcode === 0){
+            console.log('Adjusted storage successfully.');
+        }else{
+            console.error('Adjusting storage failed.')
+        }
+        onCompleteAdjust(retcode);
     });
 }
 
 chrome.storage.getYLinks = function(onRead){
     chrome.storage.sync.get("ylinks", function(data){
-        onRead( (data.ylinks) ? data.ylinks : undefined );
+        if(data.ylinks){
+            console.log('Read storage successfully.');
+            onRead(data.ylinks);
+        }else{
+            console.error('Reading storage failed.');
+            onRead(undefined);
+        }
+        
     });
 }
 
 chrome.storage.updateYLinks = function(ylinks, onUpdate){
     chrome.storage.sync.set({"ylinks": ylinks}, function(){
         if(chrome.runtime.lastError){
-            console.error("Failed to update Storage.")
+            console.error("Updating storage failed.");
             onUpdate(1);
         }else{
+            console.log("Updated storage successfully.")
             onUpdate(0);
         }
     });
 }
 
 console.out = function(data){
-    console.info(JSON.parse(JSON.stringify(data)));
+    console.log(JSON.parse(JSON.stringify(data)));
 }
