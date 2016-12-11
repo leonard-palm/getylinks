@@ -24,7 +24,7 @@ function displaySubscriptions(subscriptions){
     }
     
     $.each(subscriptions, function(i, subEntry){
-        var element = $("<li class = 'item' subID = '"+subEntry.id+"' style = 'display:none;'><ul class = 'containersub'><li class = 'itemsub channelThumbnail'><img src = '"+subEntry.info.thumbnail+"'></li><li class = 'itemsub channelDescription'>"+subEntry.info.title+"</li><li class = 'itemsub buttonClipboard'><i class='material-icons md-36'>filter_1</i></li></ul></li>");
+        var element = $("<li class = 'item' subID = '"+subEntry.id+"' style = 'display:none;'><ul class = 'containersub'><li class = 'itemsub channelThumbnail'><img src = '"+subEntry.info.thumbnail+"'></li><li class = 'itemsub channelDescription'>"+subEntry.info.title+"<div class='closeButton'>&#10006;</div></li><li class = 'itemsub buttonClipboard'><i class='material-icons md-36'>filter_1</i></li></ul></li>");
         
         subElements = subElements.add(element);
     });
@@ -43,7 +43,7 @@ function insertNewSub(sub){
         return;
     }
     
-    var element = $("<li class = 'item' subID = '"+sub.id+"' style = 'display:none;'><ul class = 'containersub'><li class = 'itemsub channelThumbnail'><img src = '"+sub.info.thumbnail+"'></li><li class = 'itemsub channelDescription'>"+sub.info.title+"</li><li class = 'itemsub buttonClipboard'><i class='material-icons md-36'>filter_1</i></li></ul></li>");
+    var element = $("<li class = 'item' subID = '"+sub.id+"' style = 'display:none;'><ul class = 'containersub'><li class = 'itemsub channelThumbnail'><img src = '"+sub.info.thumbnail+"'></li><li class = 'itemsub channelDescription'>"+sub.info.title+"<div class='closeButton'>&#10006;</div></li><li class = 'itemsub buttonClipboard'><i class='material-icons md-36'>filter_1</i></li></ul></li>");
     
     element.insertBefore($("li#enterLink"));
     
