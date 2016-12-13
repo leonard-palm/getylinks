@@ -24,7 +24,7 @@ function displaySubscriptions(subscriptions){
     }
     
     $.each(subscriptions, function(i, subEntry){
-        var element = $("<li class = 'item' subID = '"+subEntry.id+"' style = 'display:none;'><ul class = 'containersub'><li class = 'itemsub channelThumbnail'><img src = '"+subEntry.info.thumbnail+"'></li><li class = 'itemsub channelDescription'>"+subEntry.info.title+"<div class='closeButton'>&#10006;</div></li><li class = 'itemsub buttonClipboard'><i class='material-icons md-36'>filter_1</i></li></ul></li>");
+        var element = $("<li class = 'item' subID = '"+subEntry.id+"' style = 'display:none;'><ul class = 'containersub'><li class = 'itemsub channelThumbnail'><img src = '"+subEntry.info.thumbnail+"'></li><li class = 'itemsub channelDescription'>"+subEntry.info.title+"<div class='closeButton'><i class='material-icons md-18'>delete_forever</i></div></li><li class = 'itemsub buttonClipboard'><i class='material-icons md-36 white'>filter_1</i></li></ul></li>");
         
         subElements = subElements.add(element);
     });
@@ -32,23 +32,32 @@ function displaySubscriptions(subscriptions){
     $("ul#subscriptionContainer").prepend(subElements);
     
     $("li.item").filter(function(){return $(this).attr("subID") != undefined}).slideToggle(500, function(){
-        console.log('Displayed subs successfully.')
+        
+        console.log('Displayed sub [ID:'+$(this).attr("subID")+'] successfully.');
+        
+        $(this).find('div.closeButton').click(removeSub);
     });
 }
 
 function insertNewSub(sub){
+    
+    var domElement;
     
     if(!sub){
         console.error('Insertion of new sub failed (sub undefined).');
         return;
     }
     
-    var element = $("<li class = 'item' subID = '"+sub.id+"' style = 'display:none;'><ul class = 'containersub'><li class = 'itemsub channelThumbnail'><img src = '"+sub.info.thumbnail+"'></li><li class = 'itemsub channelDescription'>"+sub.info.title+"<div class='closeButton'>&#10006;</div></li><li class = 'itemsub buttonClipboard'><i class='material-icons md-36'>filter_1</i></li></ul></li>");
+    var element = $("<li class = 'item' subID = '"+sub.id+"' style = 'display:none;'><ul class = 'containersub'><li class = 'itemsub channelThumbnail'><img src = '"+sub.info.thumbnail+"'></li><li class = 'itemsub channelDescription'>"+sub.info.title+"<div class='closeButton'><i class='material-icons md-18'>delete_forever</i></div></li><li class = 'itemsub buttonClipboard'><i class='material-icons md-36 white'>filter_1</i></li></ul></li>");
     
     element.insertBefore($("li#enterLink"));
+    domElement = $("li[subID = '"+sub.id+"']");
     
-    $("li[subID = '"+sub.id+"']").slideToggle(500, function(){
-        console.log('Inserted new sub successfully.'); 
+    domElement.find('div.closeButton').click(removeSub);
+    
+    domElement.slideToggle(500, function(){
+        console.log('Inserted new sub [ID:'+sub.id+'] successfully.');
+        animatePulse('green', domElement);
     });
 }
 
@@ -105,4 +114,30 @@ function toggleadd(onFinish){
         $("input#linkInput").val("");
         onFinish();
     });
+}
+
+function animatePulse(color, element){
+
+    var className;
+    
+    if(!element) return;
+    
+    if(color == 'red'){
+        className = 'animatedPulseRed';
+    }else if(color == 'green'){
+        className = 'animatedPulseGreen';
+    }else{
+        return;
+    }
+    
+    element.addClass(className);
+    
+    setTimeout(function(){
+        element.removeClass(className);
+    }, 1000);
+}
+
+
+var removeSub = function(){
+    console.log($(this).parents('li.item').attr('subID'));
 }

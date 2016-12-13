@@ -27,7 +27,7 @@ li.item{
     background-color: #ffffff;
     padding: 5px;
     
-    -webkit-box-shadow: 0px 0px 15px -2px rgba(117,117,117,1);
+    box-shadow: 0px 0px 15px -2px #757575;
 }
 
 .containersub{
@@ -62,6 +62,10 @@ li.item{
 .channelDescription{
     
     width: 58%;
+    
+    display: flex;
+    flex-flow: column;
+    align-items: flex-start;
 }
 
 .buttonClipboard{
@@ -72,6 +76,10 @@ li.item{
     background-color: #e62117;
     cursor: pointer;
     border-radius: 4px;
+    
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 #toggleAdd{
@@ -109,6 +117,22 @@ li.item{
     display: none;
 }
 
+.animatedPulseRed{
+    
+    box-shadow: 0px 0px 15px -2px #e62117 !important;
+    animation: pulse 1s infinite cubic-bezier(0.66, 0, 0, 0.5);
+    animation-play-state: running;
+}
+
+.animatedPulseGreen{
+    
+    box-shadow: 0px 0px 15px -2px #00B806 !important;
+    animation: pulse 1s infinite cubic-bezier(0.66, 0, 0, 0.5);
+    animation-play-state: running;
+}
+
+@keyframes pulse {to {box-shadow: 0 0 0 8px rgba(232, 76, 61, 0);}}
+
 #dummyThumbnail{
     
     width: 84px;
@@ -137,9 +161,7 @@ li.item{
     
     width: 98%;
     height: 18px;
-    
-    top: 50%;
-    transform: translate(0, -50%);
+
 }
 
 #buttonAddContainer{
@@ -147,8 +169,9 @@ li.item{
     width: 70px;
     margin-right: 0px;
     
-    background-color: dimgray;
+    background-color: #a3a3a3;
     cursor: pointer;
+    border-radius: 4px;
     
 }
 
@@ -156,24 +179,25 @@ li.item{
     
     width: 21px;
     height: 21px;
-    border-radius: 50%;
     cursor: pointer;
+    border-radius: 10%;
+    background-color: #fff;
     
     display: flex;
     justify-content: center;
     align-items: center;
-    
-    font-size: 13px;
 }
 
 .closeButton:hover{
-	background-color: #e62117;
-    color: #FFFFFF;
+    
+	background-color: #D9D9D9;
+    color: #e62117;
 }
 
 .closeButton:active{
-	background-color: #e62117;
-    color: #FFFFFF;
+	
+    background-color: #D9D9D9;
+    color: #e62117;
 }
 
 /******************/
@@ -181,8 +205,7 @@ li.item{
 /******************/
 
 .material-icons.md-36 { 
-    font-size: 36px; 
-    color: #fff;
+    font-size: 36px;
 }
 
 .material-icons.red{
@@ -192,14 +215,24 @@ li.item{
 .material-icons{
     
     position:relative;
-    
-    top: 50%;
-    left: 25%;
-    transform: translate(0, -50%);
+
 }
 
 
 .row {
     width: auto;
     border: 1px solid blue;
+}
+
+.material-icons.md-18 {
+    
+    font-size: 18px;
+}
+
+.material-icons.gray{
+    color: dimgray;
+}
+
+.material-icons.white{
+    color: #fff;
 }

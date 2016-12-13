@@ -71,6 +71,8 @@ function addChannel(channelLink){
         channelType = 'channel';
     }else if(channelLink.includes('/user/')){
         channelType = 'user';
+    }else{
+        channelType = 'unknown';
     }
     
     channelID = channelLink.substring(channelLink.lastIndexOf('/')+1, channelLink.length);
@@ -81,6 +83,12 @@ function addChannel(channelLink){
         
         getChannelInfo(channelID, channelType, function(info){
             
+            if(!info){
+                animatePulse('red', $('li#enterLink'));
+                console.error('Adding channel failed (ID:'+channelID+').');
+                return;
+            }
+            
             var newSub = {'id'  : info.id,
                           'info': {'title': info.snippet.title,
                                    'thumbnail': info.snippet.thumbnails.default.url}};
@@ -90,6 +98,7 @@ function addChannel(channelLink){
             adjustStorage(ylinks, function(retcode){
 
                 if(retcode == 0){
+                    
                     console.log('Added channel successfully (ID:'+channelID+').');
                     
                     removeDummySub();
@@ -97,6 +106,8 @@ function addChannel(channelLink){
                         insertNewSub(newSub); 
                     });
                 }else{
+                    
+                    animatePulse('red', $('li#enterLink'));
                     console.error('Adding channel failed (ID:'+channelID+').');
                 }
             }); 
@@ -145,7 +156,13 @@ function getChannelInfo(channelID, channelType, onInfoGET){
     var gapiPath = 'https://www.googleapis.com/youtube/v3/channels';
     var gapiPart = 'snippet';
     
-    if(channelType == 'channel'){
+    if(channelID.length <= 0 || channelType == 'unknown'){
+        
+        console.error('GET channelInfo failed (ID:'+channelID+').');
+        onInfoGET(undefined);
+        return;
+        
+    }if(channelType == 'channel'){
     
         infoRequest = gapi.client.request({
             'path': gapiPath,
@@ -166,15 +183,20 @@ function getChannelInfo(channelID, channelType, onInfoGET){
         });
     }
     
-    infoRequest.execute(function(data){
-        if(data.error){
-            console.error('GET channelinfo failed (ID:'+channelID+').');
-            console.error(data.error);
-        }else{
-            console.log('GET channelinfo was successfull (ID:'+channelID+').');
-            onInfoGET(data.items[0]);
-        }
-    });
+    if(infoRequest){
+    
+        infoRequest.execute(function(data){
+            if(data.error){
+                console.error('GET channelInfo failed (ID:'+channelID+').');
+                console.error(JSON.stringify(data.error));
+                onInfoGET(undefined);
+            }else{
+                console.log('GET channelInfo was successfull (ID:'+channelID+').');
+                onInfoGET(data.items[0]);
+            }
+        });
+    
+    }
 }
 
 function getVideos(subscriptions, i, channelID, links, onComplete) {
