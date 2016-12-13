@@ -13,30 +13,38 @@ $(document).ready(function(){
     
 });
 
-function displaySubscriptions(subscriptions){
+function displaySubscriptions(onAdded){
     
     var subElements = $();
+    var toggleDuration = 500;
     
-    if(!subscriptions || subscriptions.length == 0){
-        insertDummySub(function(){
-            return; 
+    chrome.storage.getYLinks(function(ylinks){
+        
+        if(!ylinks || !ylinks.subscriptions || ylinks.subscriptions.length == 0){
+            insertDummySub(function(){
+                return; 
+            });
+        }
+
+        $.each(ylinks.subscriptions, function(i, subEntry){
+            var element = $("<li class = 'item' subID = '"+subEntry.id+"' style = 'display:none;'><ul class = 'containersub'><li class = 'itemsub channelThumbnail'><img src = '"+subEntry.info.thumbnail+"'></li><li class = 'itemsub channelDescription'>"+subEntry.info.title+"<div class='closeButton'><i class='material-icons md-18'>delete_forever</i></div></li><li class = 'itemsub buttonClipboard'><i class='material-icons md-36 white'>filter_1</i></li></ul></li>");
+
+            subElements = subElements.add(element);
         });
-    }
-    
-    $.each(subscriptions, function(i, subEntry){
-        var element = $("<li class = 'item' subID = '"+subEntry.id+"' style = 'display:none;'><ul class = 'containersub'><li class = 'itemsub channelThumbnail'><img src = '"+subEntry.info.thumbnail+"'></li><li class = 'itemsub channelDescription'>"+subEntry.info.title+"<div class='closeButton'><i class='material-icons md-18'>delete_forever</i></div></li><li class = 'itemsub buttonClipboard'><i class='material-icons md-36 white'>filter_1</i></li></ul></li>");
+
+        $("ul#subscriptionContainer").prepend(subElements);
+
+        onAdded();
+
+        $("li.item").filter(function(){return $(this).attr("subID") != undefined}).slideToggle(toggleDuration, function(){
+
+            console.log('Displayed sub [ID:'+$(this).attr("subID")+'] successfully.');
+
+            $(this).find('div.closeButton').click(removeSub);
+        });
         
-        subElements = subElements.add(element);
     });
-    
-    $("ul#subscriptionContainer").prepend(subElements);
-    
-    $("li.item").filter(function(){return $(this).attr("subID") != undefined}).slideToggle(500, function(){
-        
-        console.log('Displayed sub [ID:'+$(this).attr("subID")+'] successfully.');
-        
-        $(this).find('div.closeButton').click(removeSub);
-    });
+
 }
 
 function insertNewSub(sub){
@@ -139,5 +147,20 @@ function animatePulse(color, element){
 
 
 var removeSub = function(){
-    console.log($(this).parents('li.item').attr('subID'));
+    
+    removeChannel($(this).parents('li.item').attr('subID'))
 }
+
+function adjustClipboardButtons(){
+    
+    
+}
+
+
+
+
+
+
+
+
+

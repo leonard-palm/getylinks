@@ -9,19 +9,19 @@ function init(){
     //Load YouTube-API
     gapi.client.load("youtube", "v3", function(){
         
-        //Initialize Storage Object's and Array's
         initStorage(function(retcode){
             
-            //Display Subscriptions on Popup
-            chrome.storage.getYLinks(function(ylinks){
-                displaySubscriptions(ylinks.subscriptions);
+            updateChannelInfos(function(){
+                
+                displaySubscriptions(function(){
+                    
+                    scan(function(){
+                        
+                        adjustClipboardButtons
+                    });     
+                });
             });
-
-            //Scan for new Videos published by my Subscriptions
-            //scan(function(){});
-        
         });
-        
     });
 }
 
@@ -31,33 +31,29 @@ function scan(onCompleteScan){
     
     chrome.storage.getYLinks(function(ylinks){
         
-        if(!ylinks){
-            onCompleteScan(1);
+        
+        if(!ylinks || !ylinks.subscriptions){
+            console.error('Scanning failed.');
             return;
-        }else if(ylinks.subscriptions.length <= 0){
-            onCompleteScan(0);
+        }else if(ylinks.subscriptions.length == 0){
+            console.log('Scanning finished successfull.');
+            onCompleteScan();
             return;
         } 
         
-        getVideos(ylinks.subscriptions, 0, ylinks.subscriptions[0].id, ylinks.links , function(retcode, links){
-        
-            if(retcode === 0){
+        getVideos(ylinks, 0, 0, function(warnings){
+            
+            if(warnings < ylinks.subscriptions.length){
+                
                 chrome.storage.updateYLinks(ylinks, function(retcode){
-                    if(retcode === 0){
-                        console.log('Scanning finished successfull.');
-                        onCompleteScan();
-                    }else{
-                        console.error('Scanning failed.');
-                    }
+                    console.log('Scanning finished successfull.');
+                    onCompleteScan();
                 });
             }else{
                 console.error('Scanning failed.');
             }
-            
         });
-        
     });
-    
 }
 
 function addChannel(channelLink){
@@ -186,9 +182,8 @@ function getChannelInfo(channelID, channelType, onInfoGET){
     if(infoRequest){
     
         infoRequest.execute(function(data){
-            if(data.error){
+            if(data.error || data.items.length == 0){
                 console.error('GET channelInfo failed (ID:'+channelID+').');
-                console.error(JSON.stringify(data.error));
                 onInfoGET(undefined);
             }else{
                 console.log('GET channelInfo was successfull (ID:'+channelID+').');
@@ -199,13 +194,100 @@ function getChannelInfo(channelID, channelType, onInfoGET){
     }
 }
 
-function getVideos(subscriptions, i, channelID, links, onComplete) {
+function updateChannelInfos(onFinish){
+    
+    chrome.storage.getYLinks(function(ylinks){
+        
+        if(!ylinks || !ylinks.subscriptions){
+            console.error('Updating channel infos failed.');
+            onFinish();
+            return;
+        }else if(ylinks.subscriptions.length == 0){
+            onFinish();
+            return;
+        }
+        
+        updateChannelInfo(ylinks.subscriptions, 0, 0, 0, function(changes, warnings){
+            
+            if(warnings == 0){
+                console.log('Updating channel infos finished with '+changes+' change(s) and no warning(s).');
+            }else{
+                console.warn('Updating channel infos finished with '+changes+' change(s) and '+warnings+' warning(s).');
+            }
+            
+            if(changes == 0){
+                onFinish();
+                return;
+            }else{
+                adjustStorage(ylinks, function(){
+                    onFinish();
+                    return;
+                });
+            }
+        });
+        
+    });
+}
+
+function updateChannelInfo(subscriptions, i, changes, warnings, onComplete){
+    
+    var changesMade = false;
+    var errorOccured = false;
+    
+    getChannelInfo(subscriptions[i].id, 'channel', function(info){
+
+         if(!info){
+             console.error('Updating channel infos failed at "'+subscriptions[i].id+'".');
+             
+             errorOccured = true;
+             warnings += 1;
+         }
+        
+         if(!errorOccured){
+
+             if(subscriptions[i].info.title != info.snippet.title){
+                 subscriptions[i].info.title = info.snippet.title;
+                 changesMade = true;
+             }
+
+             if(subscriptions[i].info.thumbnail != info.snippet.thumbnails.default.url){
+                 subscriptions[i].info.thumbnail = info.snippet.thumbnails.default.url;
+                 changesMade = true;
+             }
+             
+             if(changesMade) changes += 1;
+         }
+
+         if((i+1) < subscriptions.length){
+             
+             //Update next channel's info
+             updateChannelInfo(subscriptions, (i+1), changes, warnings, onComplete);
+             
+         }else{
+             
+             //All channels were processed
+             if(changesMade){
+                onComplete(changes, warnings);
+                return;
+            }else{
+                onComplete(changes, warnings);
+                return;
+            }
+             
+         }
+     });
+    
+}
+
+function getVideos(ylinks, i, warnings, onComplete) {
+    
+    var errorOccured = false;
     
     var requestPlaylist = gapi.client.request({
         'path': 'https://www.googleapis.com/youtube/v3/search',
         'params': {
           'part': 'snippet',
-          'channelId': channelID,
+          'channelId': ylinks.subscriptions[i].id,
           'maxResults': 10,
           'order': 'date'
         }
@@ -214,26 +296,34 @@ function getVideos(subscriptions, i, channelID, links, onComplete) {
     requestPlaylist.execute(function(data){
         
         //Got Error
-        if(data.error){
-            console.error('GET videos at "'+channelID+'" failed.');
-            onComplete(1, links);   
+        if(data.error || !data.items ||  data.items.length == 0){
+            console.error('GET videos at "'+ylinks.subscriptions[i].id+'" failed.');
+            errorOccured = true; 
+            warnings += 1;
         }
         
-        //Fill local links
-        var storageLinkIndex = links.findIndex(link => link.channelID == channelID);
+        if(!errorOccured && data.items && data.items.length > 0){
+            
+            //Fill local links
+            var storageLinkIndex = ylinks.links.findIndex(l => l.channelID == ylinks.subscriptions[i].id);
 
-        $.each(data.items, function(i, videoEntry){
-            if(storageLinkIndex >= 0){
-                links[storageLinkIndex].videoLinks.push(videoEntry.id.videoId);
-            }
-        });
+            $.each(data.items, function(i, videoEntry){
+                if(storageLinkIndex >= 0){
+                    ylinks.links[storageLinkIndex].videoLinks.push(videoEntry.id.videoId);
+                }
+            });
+        }
         
         //Next channel
-        if( (i+1) < subscriptions.length ){
-            getVideos(subscriptions, (i+1), subscriptions[(i+1)].id, links, onComplete);
+        if( (i+1) < ylinks.subscriptions.length ){
+            getVideos(ylinks, (i+1), warnings, onComplete);
         }else{
-            console.log('GET videos finished successfully.');
-            onComplete(0, links);
+            if(warnings > 0){
+                console.warn('GET videos finished with '+warnings+' warning(s).');
+            }else{
+                console.warn('GET videos finished with no warnings.');
+            }
+            onComplete(warnings);
         }
     });
     
