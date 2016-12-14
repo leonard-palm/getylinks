@@ -27,7 +27,7 @@ function displaySubscriptions(onAdded){
         }
 
         $.each(ylinks.subscriptions, function(i, subEntry){
-            var element = $("<li class = 'item' subID = '"+subEntry.id+"' style = 'display:none;'><ul class = 'containersub'><li class = 'itemsub channelThumbnail'><img src = '"+subEntry.info.thumbnail+"'></li><li class = 'itemsub channelDescription'>"+subEntry.info.title+"<div class='closeButton'><i class='material-icons md-18'>delete_forever</i></div></li><li class = 'itemsub buttonClipboard'><i class='material-icons md-36 white'>filter_1</i></li></ul></li>");
+            var element = $("<li class = 'item' subID = '"+subEntry.id+"' style = 'display:none;'><ul class = 'containersub'><li class = 'itemsub channelThumbnail'><img src = '"+subEntry.info.thumbnail+"'></li><li class = 'itemsub channelDescription'>"+subEntry.info.title+"<div class='closeButton'><i class='material-icons md-18'>delete_forever</i></div></li><li class = 'itemsub buttonClipboard'><i class='material-icons md-36 white'>filter_none</i></li></ul></li>");
 
             subElements = subElements.add(element);
         });
@@ -56,7 +56,7 @@ function insertNewSub(sub){
         return;
     }
     
-    var element = $("<li class = 'item' subID = '"+sub.id+"' style = 'display:none;'><ul class = 'containersub'><li class = 'itemsub channelThumbnail'><img src = '"+sub.info.thumbnail+"'></li><li class = 'itemsub channelDescription'>"+sub.info.title+"<div class='closeButton'><i class='material-icons md-18'>delete_forever</i></div></li><li class = 'itemsub buttonClipboard'><i class='material-icons md-36 white'>filter_1</i></li></ul></li>");
+    var element = $("<li class = 'item' subID = '"+sub.id+"' style = 'display:none;'><ul class = 'containersub'><li class = 'itemsub channelThumbnail'><img src = '"+sub.info.thumbnail+"'></li><li class = 'itemsub channelDescription'>"+sub.info.title+"<div class='closeButton'><i class='material-icons md-18'>delete_forever</i></div></li><li class = 'itemsub buttonClipboard'><i class='material-icons md-36 white'>filter_none</i></li></ul></li>");
     
     element.insertBefore($("li#enterLink"));
     domElement = $("li[subID = '"+sub.id+"']");
@@ -151,8 +151,26 @@ var removeSub = function(){
     removeChannel($(this).parents('li.item').attr('subID'))
 }
 
-function adjustClipboardButtons(){
+function adjustClipboardButtons(links){
     
+    $.each(links, function(i, linkEntry){
+        
+        var amount = linkEntry.videoLinks.length;
+        var clipboardIcon = $("li[subID = '"+linkEntry.channelID+"']").find('li.buttonClipboard').find('i.material-icons');
+        
+        if(clipboardIcon || clipboardIcon.length == 1){
+        
+            if(amount <= 0){
+                clipboardIcon.text('filter_none');
+            }else if(amount > 9){
+                clipboardIcon.text('filter_9_plus')
+            }else{
+                clipboardIcon.text('filter_'+amount);
+            }
+            
+        }
+        
+    });
     
 }
 

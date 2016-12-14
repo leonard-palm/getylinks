@@ -15,9 +15,9 @@ function init(){
                 
                 displaySubscriptions(function(){
                     
-                    scan(function(){
-                        
-                        adjustClipboardButtons
+                    scan(function(links){
+                        console.out(links);
+                        adjustClipboardButtons(links);
                     });     
                 });
             });
@@ -37,7 +37,7 @@ function scan(onCompleteScan){
             return;
         }else if(ylinks.subscriptions.length == 0){
             console.log('Scanning finished successfull.');
-            onCompleteScan();
+            onCompleteScan(ylinks.links);
             return;
         } 
         
@@ -47,7 +47,7 @@ function scan(onCompleteScan){
                 
                 chrome.storage.updateYLinks(ylinks, function(retcode){
                     console.log('Scanning finished successfull.');
-                    onCompleteScan();
+                    onCompleteScan(ylinks.links);
                 });
             }else{
                 console.error('Scanning failed.');
@@ -309,6 +309,7 @@ function getVideos(ylinks, i, warnings, onComplete) {
 
             $.each(data.items, function(i, videoEntry){
                 if(storageLinkIndex >= 0){
+                    console.log(videoEntry);
                     ylinks.links[storageLinkIndex].videoLinks.push(videoEntry.id.videoId);
                 }
             });
@@ -321,7 +322,7 @@ function getVideos(ylinks, i, warnings, onComplete) {
             if(warnings > 0){
                 console.warn('GET videos finished with '+warnings+' warning(s).');
             }else{
-                console.warn('GET videos finished with no warnings.');
+                console.log('GET videos finished with no warnings.');
             }
             onComplete(warnings);
         }
