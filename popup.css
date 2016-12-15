@@ -240,3 +240,11 @@ li.item{
 .material-icons.white{
     color: #fff;
 }
+
+#linkContainer {
+    
+    width: 100%;
+    position: absolute;
+    left: -9999px;
+    top: 0px;
+}

@@ -96,7 +96,6 @@ function adjustStorage(ylinks, onCompleteAdjust){
 chrome.storage.getYLinks = function(onRead){
     chrome.storage.sync.get("ylinks", function(data){
         if(data.ylinks){
-            console.log('Read storage successfully.');
             onRead(data.ylinks);
         }else{
             console.error('Reading storage failed.');
@@ -112,7 +111,6 @@ chrome.storage.updateYLinks = function(ylinks, onUpdate){
             console.error("Updating storage failed.");
             onUpdate(1);
         }else{
-            console.log("Updated storage successfully.")
             onUpdate(0);
         }
     });

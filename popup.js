@@ -41,13 +41,14 @@ function displaySubscriptions(onAdded){
             console.log('Displayed sub [ID:'+$(this).attr("subID")+'] successfully.');
 
             $(this).find('div.closeButton').click(removeSub);
+            $(this).find('li.buttonClipboard').click(copyToClipboard);
         });
         
     });
 
 }
 
-function insertNewSub(sub){
+function insertNewSub(sub, onInserted){
     
     var domElement;
     
@@ -62,6 +63,9 @@ function insertNewSub(sub){
     domElement = $("li[subID = '"+sub.id+"']");
     
     domElement.find('div.closeButton').click(removeSub);
+    domElement.find('li.buttonClipboard').click(copyToClipboard);
+    
+    onInserted();
     
     domElement.slideToggle(500, function(){
         console.log('Inserted new sub [ID:'+sub.id+'] successfully.');
@@ -93,16 +97,13 @@ function insertDummySub(onFinish){
     });
 }
 
-function removeDummySub(onFinish){
+function removeDummySub(){
     
     var dummySub = $('li#dummySubscription');
     
-    if(dummySub == undefined){
-        onFinish();
-    }else{
+    if(dummySub != undefined){
         dummySub.slideToggle(500, function(){
             dummySub.remove();
-            onFinish();
         });
     }
 }
@@ -148,7 +149,30 @@ function animatePulse(color, element){
 
 var removeSub = function(){
     
-    removeChannel($(this).parents('li.item').attr('subID'))
+    removeChannel($(this).parents('li.item').attr('subID'));
+}
+
+var copyToClipboard = function(){
+    
+    var subID = $(this).parents('li.item').attr('subID');
+    var linkContainer = $('input#linkContainer');
+    var linkEntry;
+    
+    chrome.storage.getYLinks(function(ylinks){
+       
+        if(!ylinks || !ylinks.links) return;
+        
+        linkEntry = ylinks.links.find(l => l.channelID == subID);
+        
+        if(!linkEntry) return;
+        
+        $.each(linkEntry.videoLinks, function(i, link){
+            linkContainer.val(linkContainer.val() + 'www.youtube.com/watch?v=' + link + ' ');
+        });
+        
+        linkContainer.select();
+        document.execCommand("copy");
+    });
 }
 
 function adjustClipboardButtons(links){
@@ -167,18 +191,8 @@ function adjustClipboardButtons(links){
             }else{
                 clipboardIcon.text('filter_'+amount);
             }
-            
         }
-        
     });
-    
 }
-
-
-
-
-
-
-
 
 

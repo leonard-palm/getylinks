@@ -16,7 +16,7 @@ function init(){
                 displaySubscriptions(function(){
                     
                     scan(function(links){
-                        console.out(links);
+                        
                         adjustClipboardButtons(links);
                     });     
                 });
@@ -30,7 +30,6 @@ function scan(onCompleteScan){
     var storageLinkIndex;
     
     chrome.storage.getYLinks(function(ylinks){
-        
         
         if(!ylinks || !ylinks.subscriptions){
             console.error('Scanning failed.');
@@ -99,7 +98,11 @@ function addChannel(channelLink){
                     
                     removeDummySub();
                     toggleadd(function(){
-                        insertNewSub(newSub); 
+                        insertNewSub(newSub, function(){
+                            scan(function(links){
+                                adjustClipboardButtons(links);
+                            });     
+                        }); 
                     });
                 }else{
                     
@@ -289,6 +292,7 @@ function getVideos(ylinks, i, warnings, onComplete) {
           'part': 'snippet',
           'channelId': ylinks.subscriptions[i].id,
           'maxResults': 10,
+          'type': 'video',
           'order': 'date'
         }
     });
@@ -296,7 +300,7 @@ function getVideos(ylinks, i, warnings, onComplete) {
     requestPlaylist.execute(function(data){
         
         //Got Error
-        if(data.error || !data.items ||  data.items.length == 0){
+        if(data.error || !data.items){
             console.error('GET videos at "'+ylinks.subscriptions[i].id+'" failed.');
             errorOccured = true; 
             warnings += 1;
@@ -309,7 +313,6 @@ function getVideos(ylinks, i, warnings, onComplete) {
 
             $.each(data.items, function(i, videoEntry){
                 if(storageLinkIndex >= 0){
-                    console.log(videoEntry);
                     ylinks.links[storageLinkIndex].videoLinks.push(videoEntry.id.videoId);
                 }
             });
