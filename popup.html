@@ -18,9 +18,19 @@
   <body>
       
     <input type='text' id='linkContainer'>
-      
+
+    <ul class = 'container' id='actionContainer'>
+        <li class = 'action' id='rescan'>
+            <i class='material-icons md-18'>refresh</i>
+            <a style='margin-left: 5px'>Rescan</a>
+        </li>
+        <li class = 'action' id='clearCopyHistory'>
+            <i class='material-icons md-18'>clear_all</i>
+            <a style='margin-left: 5px'>Clear Copy History</a>
+        </li>
+    </ul>
+
     <ul class = 'container' id ='subscriptionContainer'>
-        
         <li class = 'item' id = 'enterLink'>
             <ul class = 'containersub'>
                 <li class = 'itemsub' id='dummyThumbnail'>?</li>
@@ -32,9 +42,12 @@
                 </li>
             </ul>         
         </li>
-        
-        <li class='item' id='toggleAdd'>Add Channel</li>
-        
     </ul>
+
+    <li class='item' id='toggleAdd'>
+        <i class="material-icons md-24 red">subscriptions</i>
+        <a style='margin-left: 10px;'>Add Subscription</a>
+    </li>
+
   </body>
 </html>

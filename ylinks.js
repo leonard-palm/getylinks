@@ -332,6 +332,26 @@ function getVideos(ylinks, i, warnings, onComplete) {
     });
     
 };
+
+function clearCopyHistory(){
+    
+    chrome.storage.getYLinks(function(ylinks){
+       
+        if(!ylinks || !ylinks.copyHistory){
+            console.error('Clearing Copy History failed.');
+            return;
+        }
+        
+        ylinks.copyHistory = [];
+        
+        chrome.storage.updateYLinks(ylinks, function(retcode){
+            if(retcode != 0){
+                console.error('Clearing Copy History failed.');
+            }
+        });
+        
+    });
+}
   
 function getSubByID(subscriptions, id){
     return subscriptions.find( sub => sub.id === id );

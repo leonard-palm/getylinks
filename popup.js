@@ -11,12 +11,23 @@ $(document).ready(function(){
         addChannel($("input#linkInput").val());
     });
     
+    $("li.action#rescan").click(function(){
+        
+        scan(function(links){         
+            adjustClipboardButtons(links);
+        });     
+    });
+    
+    $("li.action#clearCopyHistory").click(function(){
+        clearCopyHistory();
+    });
+    
 });
 
 function displaySubscriptions(onAdded){
     
     var subElements = $();
-    var toggleDuration = 500;
+    var toggleDuration = 300;
     
     chrome.storage.getYLinks(function(ylinks){
         
@@ -77,7 +88,7 @@ function removeOldSub(channelID, onFinish){
     
     var oldSub = $("li[subID = '"+channelID+"']");
     
-    oldSub.slideToggle(500, function(){
+    oldSub.slideToggle(300, function(){
         oldSub.remove();
         onFinish();
     });
@@ -92,7 +103,7 @@ function insertDummySub(onFinish){
         'style' : 'display:none;'
     })); 
     
-    $("li#dummySubscription").slideToggle(500, function(){
+    $("li#dummySubscription").slideToggle(300, function(){
         onFinish();
     });
 }
@@ -110,17 +121,19 @@ function removeDummySub(){
 
 function toggleadd(onFinish){
     
-    var $buttonadd = $("li#toggleAdd");
-    var $enterLink = $("li#enterLink");
+    var $buttonadd = $('li#toggleAdd');
+    var $enterLink = $('li#enterLink');
     
-    if( $enterLink.css("display") == "none" ){
-        $buttonadd.text("Cancel");  
+    if( $enterLink.css('display') == 'none' ){
+        $buttonadd.find('a').text('Cancel');
+        $buttonadd.find('i.material-icons').text('remove_circle_outline');
     }else{
-        $buttonadd.text("Add Channel");
+        $buttonadd.find('a').text('Add Subscription');
+        $buttonadd.find('i.material-icons').text('subscriptions');
     }
     
-    $enterLink.slideToggle(500, function(){
-        $("input#linkInput").val("");
+    $enterLink.slideToggle(300, function(){
+        $('input#linkInput').val('');
         onFinish();
     });
 }
