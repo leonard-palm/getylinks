@@ -12,7 +12,6 @@ $(document).ready(function(){
     });
     
     $("li.action#rescan").click(function(){
-        
         scan(function(links){         
             adjustClipboardButtons(links);
         });     
@@ -26,7 +25,8 @@ $(document).ready(function(){
 
 function displaySubscriptions(onAdded){
     
-    var subElements = $();
+    var channelElements = $();
+    var channelElement;
     var toggleDuration = 300;
     
     chrome.storage.getYLinks(function(ylinks){
@@ -38,22 +38,43 @@ function displaySubscriptions(onAdded){
         }
 
         $.each(ylinks.subscriptions, function(i, subEntry){
-            var element = $("<li class = 'item' subID = '"+subEntry.id+"' style = 'display:none;'><ul class = 'containersub'><li class = 'itemsub channelThumbnail'><img src = '"+subEntry.info.thumbnail+"'></li><li class = 'itemsub channelDescription'>"+subEntry.info.title+"<div class='closeButton'><i class='material-icons md-18'>delete_forever</i></div></li><li class = 'itemsub buttonClipboard'><i class='material-icons md-36 white'>filter_none</i></li></ul></li>");
+            
+            channelElement = $("<li class='item' subID='"+subEntry.id+"'> \
+                                    <ul class='containersub'> \
+                                        <li class='itemsub channelThumbnail'> \
+                                            <img src = '"+subEntry.info.thumbnail+"'> \
+                                        </li> \
+                                        <li class='itemsub channelDescription'> \
+                                            <a class='channelTitle'>"+subEntry.info.title+" <br></a> \
+                                            <div class='statistics'> \
+                                                <a class='count'>"+subEntry.statistics.subscriberCount+"</a> Subscribers <br> \
+                                                <a class='count'>"+subEntry.statistics.videoCount+"</a> Videos <br> \
+                                            </div> \
+                                            <div class='closeButton'> \
+                                                <i class='material-icons md-18'>delete_forever</i> \
+                                                <a style='margin-left: 3px'>Remove</a> \
+                                            </div> \
+                                        </li> \
+                                        <li class='itemsub buttonClipboard'> \
+                                            <i class='material-icons md-36 white'>filter_none</i> \
+                                        </li> \
+                                    </ul> \
+                                </li>");
 
-            subElements = subElements.add(element);
+            channelElements = channelElements.add(channelElement);
         });
-
-        $("ul#subscriptionContainer").prepend(subElements);
+        
+        $.each(channelElements, function(i, channelElement){
+            assignListenersToChannelElement(channelElement); 
+        });
+        
+        channelElements.insertAfter($("li#enterLink"));
 
         onAdded();
-
-        $("li.item").filter(function(){return $(this).attr("subID") != undefined}).slideToggle(toggleDuration, function(){
-
+        
+        channelElements.slideToggle(toggleDuration, function(){
             console.log('Displayed sub [ID:'+$(this).attr("subID")+'] successfully.');
-
-            $(this).find('div.closeButton').click(removeSub);
-            $(this).find('li.buttonClipboard').click(copyToClipboard);
-        });
+        }); 
         
     });
 
@@ -61,26 +82,61 @@ function displaySubscriptions(onAdded){
 
 function insertNewSub(sub, onInserted){
     
-    var domElement;
+    var channelElement;
     
     if(!sub){
         console.error('Insertion of new sub failed (sub undefined).');
         return;
     }
     
-    var element = $("<li class = 'item' subID = '"+sub.id+"' style = 'display:none;'><ul class = 'containersub'><li class = 'itemsub channelThumbnail'><img src = '"+sub.info.thumbnail+"'></li><li class = 'itemsub channelDescription'>"+sub.info.title+"<div class='closeButton'><i class='material-icons md-18'>delete_forever</i></div></li><li class = 'itemsub buttonClipboard'><i class='material-icons md-36 white'>filter_none</i></li></ul></li>");
+    channelElement = $("<li class='item' subID='"+sub.id+"'> \
+                            <ul class='containersub'> \
+                                <li class='itemsub channelThumbnail'> \
+                                    <img src = '"+sub.info.thumbnail+"'> \
+                                </li> \
+                                <li class='itemsub channelDescription'> \
+                                    <a class='channelTitle'>"+sub.info.title+" <br></a> \
+                                    <div class='statistics'> \
+                                        <a class='count'>"+sub.statistics.subscriberCount+"</a> Subscribers <br> \
+                                        <a class='count'>"+sub.statistics.videoCount+"</a> Videos <br> \
+                                    </div> \
+                                    <div class='closeButton'> \
+                                        <i class='material-icons md-18'>delete_forever</i> \
+                                        <a style='margin-left: 3px'>Remove</a> \
+                                    </div> \
+                                </li> \
+                                <li class='itemsub buttonClipboard'> \
+                                    <i class='material-icons md-36 white'>filter_none</i> \
+                                </li> \
+                            </ul> \
+                        </li>");
     
-    element.insertBefore($("li#enterLink"));
-    domElement = $("li[subID = '"+sub.id+"']");
     
-    domElement.find('div.closeButton').click(removeSub);
-    domElement.find('li.buttonClipboard').click(copyToClipboard);
+    assignListenersToChannelElement(channelElement);
+    
+    channelElement.insertAfter($("li#enterLink"));
     
     onInserted();
     
-    domElement.slideToggle(500, function(){
+    channelElement.slideToggle(500, function(){
         console.log('Inserted new sub [ID:'+sub.id+'] successfully.');
-        animatePulse('green', domElement);
+        animatePulse('green', $(this));
+    });
+}
+
+function assignListenersToChannelElement(element){
+        
+    $(element).find('div.closeButton').click(removeSub);
+    $(element).find('li.buttonClipboard').click(copyToClipboard);
+    $(element).hover(itemHoverIn, itemHoverOut);
+    $(element).find('div.closeButton').hover(removeHoverIn, removeHoverOut);
+    
+    $(element).find('li.channelThumbnail').click(function(){
+        openChannel($(this).parents('li.item').attr('subID'));
+    });
+    
+    $(element).find('a.channelTitle').click(function(){
+        openChannel($(this).parents('li.item').attr('subID'));
     });
 }
 
@@ -96,7 +152,7 @@ function removeOldSub(channelID, onFinish){
 
 function insertDummySub(onFinish){
     
-    $("ul#subscriptionContainer").prepend( $('<li/>',{
+    $("ul#subscriptionContainer").append( $('<li/>',{
         text    : 'No Subscriptions',
         'class' : 'item',
         'id'    : 'dummySubscription',
@@ -126,9 +182,9 @@ function toggleadd(onFinish){
     
     if( $enterLink.css('display') == 'none' ){
         $buttonadd.find('a').text('Cancel');
-        $buttonadd.find('i.material-icons').text('remove_circle_outline');
+        $buttonadd.find('i.material-icons').text('remove_circle');
     }else{
-        $buttonadd.find('a').text('Add Subscription');
+        $buttonadd.find('a').text('Add Channel');
         $buttonadd.find('i.material-icons').text('subscriptions');
     }
     
@@ -207,5 +263,35 @@ function adjustClipboardButtons(links){
         }
     });
 }
+
+var itemHoverIn = function(){
+    
+    $(this).css('background-color', '#f2f2f2');
+    $(this).find('li.channelDescription').css('background-color', '#f2f2f2');
+    $(this).find('div.closeButton').css('background-color', '#f2f2f2');
+    $(this).find('div.closeButton').css('display', 'flex');
+}
+
+var itemHoverOut = function(){
+    
+    $(this).css('background-color', '#fff');
+    $(this).find('li.channelDescription').css('background-color', '#fff');
+    $(this).find('div.closeButton').css('background-color', '#fff');
+    $(this).find('div.closeButton').css('display', 'none');
+}
+
+var removeHoverIn = function(){
+    
+    $(this).find('i.material-icons').addClass('red');
+}
+
+var removeHoverOut = function(){
+    
+    $(this).find('i.material-icons').removeClass('red');
+}
+
+
+
+
 
 

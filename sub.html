@@ -1,16 +1,20 @@
 <li class = 'item' subID = '"+subEntry.id+"'>
     <ul class = 'containersub'>
         <li class = 'itemsub channelThumbnail'>
-            <img src = '"+subEntry.info.thumbnails.default.url+"'>
+            <img src = '"+subEntry.info.thumbnail+"'>
         </li>
         <li class = 'itemsub channelDescription'>
-            "+subEntry.info.localized.title+"
+            <a class='channelTitle'>"+subEntry.info.title+" <br></a>
+            <div class='statistics'>
+                <a class='count'>"+subEntry.statistics.subscriberCount+"</a> Subscribers <br>
+                <a class='count'>"+subEntry.statistics.videoCount+"</a> Videos <br>
+            </div>
             <div class='closeButton'>
-                <i class='material-icons md-18'>delete_forever</i>
+                <i class='material-icons md-18 red'>delete_forever</i>
             </div>
         </li>
         <li class = 'itemsub buttonClipboard'>
-            <i class='material-icons md-36 white'>filter_1</i>
+            <i class='material-icons md-36 white'>filter_none</i>
         </li>
     </ul>
 </li>

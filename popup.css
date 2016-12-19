@@ -27,6 +27,8 @@ li.item{
     background-color: #ffffff;
     padding: 5px;
     
+    display: none;
+    
     box-shadow: 0px 0px 15px -2px #757575;
 }
 
@@ -57,6 +59,8 @@ li.item{
 .channelThumbnail{
     
     width: 88px;
+    
+    cursor: pointer;
 }
 
 .channelDescription{
@@ -84,18 +88,8 @@ li.item{
 
 #toggleAdd{
     
-    height: 40px;
-    margin-bottom: 5px;
-    
-    font-size: 16px;
-    font-weight: bold;
-    cursor: pointer;
-    
-    list-style: none;
-    
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    width: 120px;
+
 }
 
 #dummySubscription{
@@ -185,27 +179,32 @@ li.item{
 
 .closeButton{
     
-    width: 21px;
-    height: 21px;
-    cursor: pointer;
-    border-radius: 10%;
-    background-color: #fff;
+    display: none;
     
-    display: flex;
+    height: 21px;
+    padding-left: 2px;
+    padding-right: 4px;
+    
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: bold;
+    border-radius: 3px;
+    background-color: #fff;
+    margin-top: 10px;
+    
     justify-content: center;
     align-items: center;
+    
 }
 
 .closeButton:hover{
     
-	background-color: #D9D9D9;
-    color: #e62117;
+	background-color: #f2f2f2;
 }
 
 .closeButton:active{
 	
-    background-color: #D9D9D9;
-    color: #e62117;
+    background-color: #f2f2f2;
 }
 
 /******************/
@@ -267,7 +266,7 @@ li.item{
     font-size: 13px;
     font-weight: bold;
     box-shadow: 0px 0px 15px -2px #757575;
-    border-radius: 2px;
+    border-radius: 3px;
     
     cursor: pointer;
     
@@ -279,4 +278,26 @@ li.item{
 .material-icons.md-24 {
     
     font-size: 24px;
+}
+
+.statistics {
+    
+    margin-top: 10px;
+    font-size: 11px;
+}
+
+.count {
+    
+    font-weight: bold;
+}
+
+.channelTitle {
+    
+    width: 100%;
+    
+    cursor: pointer;
+    white-space: nowrap;
+	overflow: hidden;
+    
+    -webkit-mask-image: -webkit-linear-gradient(left, rgba(0, 0, 0, 1) 90%, rgba(0, 0, 0, 0) 99%);
 }

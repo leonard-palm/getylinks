@@ -57,36 +57,46 @@ function scan(onCompleteScan){
 
 function addChannel(channelLink){
     
+    var channelIdentifyer = '/channel/';
+    var userIdentifyer = '/user/';
+    var startIndex;
     var channelType;
     var channelID;
     
     if(channelLink.length <= 0) return;
     
-    if(channelLink.includes('/channel/')){
+    if(channelLink.includes(channelIdentifyer)){
         channelType = 'channel';
-    }else if(channelLink.includes('/user/')){
+        startIndex = channelLink.lastIndexOf(channelIdentifyer) + channelIdentifyer.length;
+    }else if(channelLink.includes(userIdentifyer)){
         channelType = 'user';
+        startIndex = channelLink.lastIndexOf(userIdentifyer) + userIdentifyer.length;
     }else{
-        channelType = 'unknown';
+        animatePulse('red', $('li#enterLink'));
+        console.error('Adding channel failed (ID:'+channelID+').');
     }
     
-    channelID = channelLink.substring(channelLink.lastIndexOf('/')+1, channelLink.length);
+    channelID = channelLink.substring(startIndex, channelLink.length);
+    
+    if(channelID.indexOf('/') != -1){
+        channelID = channelID.substring(0, channelLink.substring(startIndex, channelLink.length).indexOf('/'));
+    }
     
     chrome.storage.getYLinks(function(ylinks){
        
-        if(!ylinks || subsContain(ylinks.subscriptions, channelID) ) return;
+        if(!ylinks) return;
         
-        getChannelInfo(channelID, channelType, function(info){
+        getChannelInfo(channelID, channelType, function(channelID, info, statistics){
             
-            if(!info){
+            if(!info || subsContain(ylinks.subscriptions, channelID)){
                 animatePulse('red', $('li#enterLink'));
                 console.error('Adding channel failed (ID:'+channelID+').');
                 return;
             }
             
-            var newSub = {'id'  : info.id,
-                          'info': {'title': info.snippet.title,
-                                   'thumbnail': info.snippet.thumbnails.default.url}};
+            var newSub = {'id'        : channelID,
+                          'info'      : info, 
+                          'statistics': statistics};
             
             ylinks.subscriptions.push(newSub);
                     
@@ -152,49 +162,59 @@ function removeChannel(channelID){
 function getChannelInfo(channelID, channelType, onInfoGET){
     
     var infoRequest;
-    var gapiPath = 'https://www.googleapis.com/youtube/v3/channels';
-    var gapiPart = 'snippet';
+    var gapiURL = 'https://www.googleapis.com/youtube/v3/channels';
+    var snippetGET, statisticsGET;
+    var snippetParams = {};
+    var statisticsParams = {};
     
-    if(channelID.length <= 0 || channelType == 'unknown'){
+    if(channelID.length <= 0 || channelType.length <= 0){
         
         console.error('GET channelInfo failed (ID:'+channelID+').');
-        onInfoGET(undefined);
+        onInfoGET(undefined, undefined, undefined);
         return;
         
-    }if(channelType == 'channel'){
+    }
     
-        infoRequest = gapi.client.request({
-            'path': gapiPath,
-            'params': {
-              'part': gapiPart,
-              'id': channelID
-            }
-        });
+    if(channelType == 'channel'){
+        
+        snippetParams['id'] = channelID;
+        statisticsParams['id'] = channelID;
         
     }else if(channelType == 'user'){
         
-        infoRequest = gapi.client.request({
-            'path': gapiPath,
-            'params': {
-              'part': gapiPart,
-              'forUsername': channelID
-            }
-        });
+        snippetParams['forUsername'] = channelID;
+        statisticsParams['forUsername'] = channelID;
     }
     
-    if(infoRequest){
+    snippetParams['part'] = 'snippet';
+    statisticsParams['part'] = 'statistics';
+    statisticsParams['key'] = apikey;
+    snippetParams['key'] = apikey;
     
-        infoRequest.execute(function(data){
-            if(data.error || data.items.length == 0){
-                console.error('GET channelInfo failed (ID:'+channelID+').');
-                onInfoGET(undefined);
-            }else{
-                console.log('GET channelInfo was successfull (ID:'+channelID+').');
-                onInfoGET(data.items[0]);
-            }
+    snippetGET = $.get(gapiURL, snippetParams);
+    statisticsGET = $.get(gapiURL, statisticsParams);
+    
+    $.when(snippetGET, statisticsGET).done(function(dataSnippet, dataStatistics){
+
+        console.log('GET channelInfo was successfull (ID:'+channelID+').');
+        
+        var info = {'title'    : dataSnippet[0].items[0].snippet.title,
+                    'thumbnail': dataSnippet[0].items[0].snippet.thumbnails.default.url};
+        
+        var statistics = {'subscriberCount': dataStatistics[0].items[0].statistics.subscriberCount,
+                          'videoCount'     : dataStatistics[0].items[0].statistics.videoCount,
+                          'viewCount'      : dataStatistics[0].items[0].statistics.viewCount}
+        
+        onInfoGET(dataSnippet[0].items[0].id, info, statistics);
+        
+    }).fail(function(response){
+        
+        $.each(response.responseJSON.error.errors, function(i, errorEntry){
+            console.error("Message: '"+errorEntry.message+"', Reason: '"+errorEntry.reason+"'");
         });
+        onInfoGET(undefined, undefined, undefined);
+    });
     
-    }
 }
 
 function updateChannelInfos(onFinish){
@@ -237,9 +257,9 @@ function updateChannelInfo(subscriptions, i, changes, warnings, onComplete){
     var changesMade = false;
     var errorOccured = false;
     
-    getChannelInfo(subscriptions[i].id, 'channel', function(info){
+    getChannelInfo(subscriptions[i].id, 'channel', function(channelID, info, statistics){
 
-         if(!info){
+         if(!channelID || !info){
              console.error('Updating channel infos failed at "'+subscriptions[i].id+'".');
              
              errorOccured = true;
@@ -247,16 +267,22 @@ function updateChannelInfo(subscriptions, i, changes, warnings, onComplete){
          }
         
          if(!errorOccured){
-
-             if(subscriptions[i].info.title != info.snippet.title){
-                 subscriptions[i].info.title = info.snippet.title;
-                 changesMade = true;
-             }
-
-             if(subscriptions[i].info.thumbnail != info.snippet.thumbnails.default.url){
-                 subscriptions[i].info.thumbnail = info.snippet.thumbnails.default.url;
-                 changesMade = true;
-             }
+             
+             $.each(subscriptions[i].info, function(key, value){
+                if(value != info[key]){
+                    subscriptions[i].info = info;
+                    changesMade = true;
+                    return false;
+                }
+             });
+             
+             $.each(subscriptions[i].statistics, function(key, value){
+                if(value != statistics[key]){
+                    subscriptions[i].statistics = statistics;
+                    changesMade = true;
+                    return false;
+                } 
+             });
              
              if(changesMade) changes += 1;
          }
@@ -349,6 +375,15 @@ function clearCopyHistory(){
                 console.error('Clearing Copy History failed.');
             }
         });
+        
+    });
+}
+
+function openChannel(channelID){
+    
+    var youtubeURL = 'http://www.youtube.com/channel/' + channelID;
+    
+    chrome.tabs.create({'url': youtubeURL}, function(){
         
     });
 }
