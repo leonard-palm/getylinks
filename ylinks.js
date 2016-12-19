@@ -13,13 +13,13 @@ function init(){
             
             updateChannelInfos(function(){
                 
-                displaySubscriptions(function(){
+                scan(function(links){
                     
-                    scan(function(links){
-                        
+                    displaySubscriptions(function(){
+                    
                         adjustClipboardButtons(links);
-                    });     
-                });
+                    });
+                });    
             });
         });
     });
@@ -74,6 +74,7 @@ function addChannel(channelLink){
     }else{
         animatePulse('red', $('li#enterLink'));
         console.error('Adding channel failed (ID:'+channelID+').');
+        return;
     }
     
     channelID = channelLink.substring(startIndex, channelLink.length);
@@ -108,6 +109,7 @@ function addChannel(channelLink){
                     
                     removeDummySub();
                     toggleadd(function(){
+                        
                         insertNewSub(newSub, function(){
                             scan(function(links){
                                 adjustClipboardButtons(links);
@@ -317,7 +319,7 @@ function getVideos(ylinks, i, warnings, onComplete) {
         'params': {
           'part': 'snippet',
           'channelId': ylinks.subscriptions[i].id,
-          'maxResults': 10,
+          'maxResults': 20,
           'type': 'video',
           'order': 'date'
         }
@@ -336,12 +338,15 @@ function getVideos(ylinks, i, warnings, onComplete) {
             
             //Fill local links
             var storageLinkIndex = ylinks.links.findIndex(l => l.channelID == ylinks.subscriptions[i].id);
-
-            $.each(data.items, function(i, videoEntry){
-                if(storageLinkIndex >= 0){
-                    ylinks.links[storageLinkIndex].videoLinks.push(videoEntry.id.videoId);
-                }
-            });
+            var storageCopyHistoryIndex = ylinks.copyHistory.findIndex(c => c.channelID == ylinks.subscriptions[i].id);
+            
+            if(storageLinkIndex >= 0){
+                $.each(data.items, function(i, videoEntry){
+                    if(ylinks.copyHistory[storageCopyHistoryIndex].videoLinks.indexOf(videoEntry.id.videoId) == -1){
+                        ylinks.links[storageLinkIndex].videoLinks.push(videoEntry.id.videoId);
+                    }
+                });
+            }
         }
         
         //Next channel
@@ -361,6 +366,8 @@ function getVideos(ylinks, i, warnings, onComplete) {
 
 function clearCopyHistory(){
     
+    var linkContainer;
+    
     chrome.storage.getYLinks(function(ylinks){
        
         if(!ylinks || !ylinks.copyHistory){
@@ -368,13 +375,24 @@ function clearCopyHistory(){
             return;
         }
         
-        ylinks.copyHistory = [];
+        $.each(ylinks.copyHistory, function(i, copyHistoryEntry){
+            copyHistoryEntry.videoLinks = [];
+        });
         
         chrome.storage.updateYLinks(ylinks, function(retcode){
             if(retcode != 0){
                 console.error('Clearing Copy History failed.');
+            }else{
+                scan(function(links){
+                    adjustClipboardButtons(links);
+                });     
             }
         });
+        
+        linkContainer = $('input#linkContainer');
+        linkContainer.val('; ');
+        linkContainer.select();
+        document.execCommand("copy");
         
     });
 }

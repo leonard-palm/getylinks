@@ -7,6 +7,7 @@
     <link href='https://fonts.googleapis.com/icon?family=Material+Icons' rel='stylesheet'>
     
     <script src='https://ajax.googleapis.com/ajax/libs/jquery/1.12.0/jquery.min.js'></script>
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
     <script src='storage.js'></script>
     <script src='popup.js'></script>
     <script src='ylinks.js'></script>
@@ -23,16 +24,20 @@
         
         <li class='action' id='toggleAdd'>
             <i class="material-icons md-18 red">subscriptions</i>
-            <a style='margin-left: 5px;'>Add Channel</a>
+            <a style='margin-left: 4px;'>Add Channel</a>
         </li>
         
         <li class = 'action' id='rescan'>
             <i class='material-icons md-18'>refresh</i>
-            <a style='margin-left: 5px'>Rescan</a>
+            <a style='margin-left: 4px'>Rescan</a>
         </li>
         <li class = 'action' id='clearCopyHistory'>
             <i class='material-icons md-18'>clear_all</i>
-            <a style='margin-left: 5px'>Clear Copy History</a>
+            <a style='margin-left: 4px'>Clear Copy History</a>
+        </li>
+        
+        <li class = 'action' id='closePopup'>
+            <i class='material-icons md-18'>clear</i>
         </li>
     </ul>
       
@@ -40,9 +45,11 @@
         
         <li class = 'item' id = 'enterLink'>
             <ul class = 'containersub'>
-                <li class = 'itemsub' id='dummyThumbnail'>?</li>
+                <li class = 'itemsub' id='dummyThumbnail'>
+                    <i class="material-icons md-36 red">account_circle</i>
+                </li>
                 <li class='itemsub' id='linkInputContainer'>
-                    <input type='text' id='linkInput'>
+                    <input type='text' id='linkInput' placeholder="Channel link">
                 </li>
                 <li class='itemsub' id='buttonAddContainer'>
                     <i class='material-icons md-36 red'>playlist_add</i>

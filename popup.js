@@ -1,33 +1,37 @@
 $(document).ready(function(){
     
     // Set Listener's
-    $("li#toggleAdd").click(function(){
+    $('li#toggleAdd').click(function(){
         toggleadd(function(){
             console.log("Insert block toggled successfully.")
         });
     });
     
-    $("li#buttonAddContainer").click(function(){
-        addChannel($("input#linkInput").val());
+    $('li#buttonAddContainer').click(function(){
+        addChannel($('input#linkInput').val());
     });
     
-    $("li.action#rescan").click(function(){
+    $('li.action#rescan').click(function(){
         scan(function(links){         
             adjustClipboardButtons(links);
         });     
     });
     
-    $("li.action#clearCopyHistory").click(function(){
+    $('li.action#clearCopyHistory').click(function(){
         clearCopyHistory();
+    });
+    
+    $('li.action#closePopup').click(function(){
+       window.close(); 
     });
     
 });
 
-function displaySubscriptions(onAdded){
+function displaySubscriptions(onFinish){
     
     var channelElements = $();
     var channelElement;
-    var toggleDuration = 300;
+    var toggleDuration = 500;
     
     chrome.storage.getYLinks(function(ylinks){
         
@@ -56,7 +60,7 @@ function displaySubscriptions(onAdded){
                                             </div> \
                                         </li> \
                                         <li class='itemsub buttonClipboard'> \
-                                            <i class='material-icons md-36 white'>filter_none</i> \
+                                            <i class='material-icons md-36 red'>filter_none</i> \
                                         </li> \
                                     </ul> \
                                 </li>");
@@ -69,12 +73,14 @@ function displaySubscriptions(onAdded){
         });
         
         channelElements.insertAfter($("li#enterLink"));
-
-        onAdded();
         
         channelElements.slideToggle(toggleDuration, function(){
             console.log('Displayed sub [ID:'+$(this).attr("subID")+'] successfully.');
         }); 
+        
+        channelElements.promise().done(function(){
+            onFinish();
+        });
         
     });
 
@@ -106,7 +112,7 @@ function insertNewSub(sub, onInserted){
                                     </div> \
                                 </li> \
                                 <li class='itemsub buttonClipboard'> \
-                                    <i class='material-icons md-36 white'>filter_none</i> \
+                                    <i class='material-icons md-36 red'>filter_none</i> \
                                 </li> \
                             </ul> \
                         </li>");
@@ -116,11 +122,10 @@ function insertNewSub(sub, onInserted){
     
     channelElement.insertAfter($("li#enterLink"));
     
-    onInserted();
-    
     channelElement.slideToggle(500, function(){
         console.log('Inserted new sub [ID:'+sub.id+'] successfully.');
         animatePulse('green', $(this));
+        onInserted();
     });
 }
 
@@ -225,40 +230,78 @@ var copyToClipboard = function(){
     
     var subID = $(this).parents('li.item').attr('subID');
     var linkContainer = $('input#linkContainer');
-    var linkEntry;
+    var linkIndex;
+    var copyHistoryIndex;
     
     chrome.storage.getYLinks(function(ylinks){
        
         if(!ylinks || !ylinks.links) return;
         
-        linkEntry = ylinks.links.find(l => l.channelID == subID);
+        linkIndex = ylinks.links.findIndex(l => l.channelID == subID);
         
-        if(!linkEntry) return;
+        if(linkIndex < 0) return;
         
-        $.each(linkEntry.videoLinks, function(i, link){
+        copyHistoryIndex = ylinks.copyHistory.findIndex(c => c.channelID == subID);
+        
+        $.each(ylinks.links[linkIndex].videoLinks, function(i, link){
+            
             linkContainer.val(linkContainer.val() + 'www.youtube.com/watch?v=' + link + ' ');
+            ylinks.copyHistory[copyHistoryIndex].videoLinks.push(link);
         });
+        
+        
+        ylinks.links[linkIndex].videoLinks = [];
         
         linkContainer.select();
         document.execCommand("copy");
+        
+        chrome.storage.updateYLinks(ylinks, function(retcode){
+        
+            if(retcode != 0) return;
+            
+            adjustClipboardButtons(ylinks.links);
+        });
+    
     });
 }
 
 function adjustClipboardButtons(links){
     
+    var clipboardButton;
+    var clipboardIcon;
+    var linkAmount;
+    var animationDuration = 1000;
+    
     $.each(links, function(i, linkEntry){
         
-        var amount = linkEntry.videoLinks.length;
-        var clipboardIcon = $("li[subID = '"+linkEntry.channelID+"']").find('li.buttonClipboard').find('i.material-icons');
+        linkAmount = linkEntry.videoLinks.length;
+        clipboardButton = $("li[subID = '"+linkEntry.channelID+"']").find('li.buttonClipboard');
+        clipboardIcon = clipboardButton.find('i.material-icons');
         
         if(clipboardIcon || clipboardIcon.length == 1){
         
-            if(amount <= 0){
+            if(linkAmount <= 0){
+                
                 clipboardIcon.text('filter_none');
-            }else if(amount > 9){
-                clipboardIcon.text('filter_9_plus')
+                clipboardButton.css('cursor', 'default');
+                
+                clipboardButton.animate({ backgroundColor: "#a3a3a3" }, animationDuration );
+                clipboardIcon.animate({ color: '#e62117' }, animationDuration);
+                
+            }else if(linkAmount > 9){
+                
+                clipboardIcon.text('filter_9_plus');
+                clipboardButton.css('cursor', 'pointer');
+                
+                clipboardButton.animate({ backgroundColor: "#e62117" }, animationDuration );
+                clipboardIcon.animate({ color: '#fff' }, animationDuration);
+                
             }else{
                 clipboardIcon.text('filter_'+amount);
+                clipboardButton.css('cursor', 'pointer');
+                
+                clipboardButton.animate({ backgroundColor: "#e62117" }, animationDuration );
+                clipboardIcon.animate({ color: '#fff' }, animationDuration);
             }
         }
     });
@@ -289,9 +332,6 @@ var removeHoverOut = function(){
     
     $(this).find('i.material-icons').removeClass('red');
 }
-
-
-
 
 
 
