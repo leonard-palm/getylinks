@@ -1,29 +1,27 @@
 $(document).ready(function(){
     
-    // Set Listener's
-    $('li#toggleAdd').click(function(){
-        toggleadd(function(){
-            console.log("Insert block toggled successfully.")
+    if(navigator.onLine){
+    
+        // Set Listener's
+        $('li#toggleAdd').click(function(){
+            toggleadd(function(){});
         });
-    });
+
+        $('li#buttonAddContainer').click(function(){
+            addChannel($('input#linkInput').val());
+        });
+
+        $('li.action#rescan').click(function(){
+            scan(function(links){         
+                adjustClipboardButtons(links);
+            });     
+        });
     
-    $('li#buttonAddContainer').click(function(){
-        addChannel($('input#linkInput').val());
-    });
+        $('li.action#resetCopyHistory').click(function(){
+            resetCopyHistory();
+        });
     
-    $('li.action#rescan').click(function(){
-        scan(function(links){         
-            adjustClipboardButtons(links);
-        });     
-    });
-    
-    $('li.action#clearCopyHistory').click(function(){
-        clearCopyHistory();
-    });
-    
-    $('li.action#closePopup').click(function(){
-       window.close(); 
-    });
+    }
     
 });
 
@@ -54,9 +52,15 @@ function displaySubscriptions(onFinish){
                                                 <a class='count'>"+subEntry.statistics.subscriberCount+"</a> Subscribers <br> \
                                                 <a class='count'>"+subEntry.statistics.videoCount+"</a> Videos <br> \
                                             </div> \
-                                            <div class='closeButton'> \
-                                                <i class='material-icons md-18'>delete_forever</i> \
-                                                <a style='margin-left: 3px'>Remove</a> \
+                                            <div class='subActionContainer'> \
+                                                <div class='subAction' id='removeSub'> \
+                                                    <i class='material-icons md-18'>delete_forever</i> \
+                                                    <a style='margin-left: 3px'>Remove</a> \
+                                                </div> \
+                                                <div class='subAction' id='resetHistorySub'> \
+                                                    <i class='material-icons md-18'>history</i> \
+                                                    <a style='margin-left: 3px'>Reset Copy History</a> \
+                                                </div> \
                                             </div> \
                                         </li> \
                                         <li class='itemsub buttonClipboard'> \
@@ -106,9 +110,15 @@ function insertNewSub(sub, onInserted){
                                         <a class='count'>"+sub.statistics.subscriberCount+"</a> Subscribers <br> \
                                         <a class='count'>"+sub.statistics.videoCount+"</a> Videos <br> \
                                     </div> \
-                                    <div class='closeButton'> \
-                                        <i class='material-icons md-18'>delete_forever</i> \
-                                        <a style='margin-left: 3px'>Remove</a> \
+                                    <div class='subActionContainer'> \
+                                        <div class='subAction' id='removeSub'> \
+                                            <i class='material-icons md-18'>delete_forever</i> \
+                                            <a style='margin-left: 3px'>Remove</a> \
+                                        </div> \
+                                        <div class='subAction' id='resetHistorySub'> \
+                                            <i class='material-icons md-18'>history</i> \
+                                            <a style='margin-left: 3px'>Reset Copy History</a> \
+                                        </div> \
                                     </div> \
                                 </li> \
                                 <li class='itemsub buttonClipboard'> \
@@ -116,6 +126,8 @@ function insertNewSub(sub, onInserted){
                                 </li> \
                             </ul> \
                         </li>");
+    
+    console.log(channelElement);
     
     
     assignListenersToChannelElement(channelElement);
@@ -131,10 +143,14 @@ function insertNewSub(sub, onInserted){
 
 function assignListenersToChannelElement(element){
         
-    $(element).find('div.closeButton').click(removeSub);
+    $(element).find('div.subAction#removeSub').click(removeSub);
     $(element).find('li.buttonClipboard').click(copyToClipboard);
     $(element).hover(itemHoverIn, itemHoverOut);
-    $(element).find('div.closeButton').hover(removeHoverIn, removeHoverOut);
+    $(element).find('div.subAction#removeSub').hover(removeHoverIn, removeHoverOut);
+    
+    $(element).find('div.subAction#resetHistorySub').click(function(){
+        resetHistorySub($(this).parents('li.item').attr('subID'));  
+    });
     
     $(element).find('li.channelThumbnail').click(function(){
         openChannel($(this).parents('li.item').attr('subID'));
@@ -297,7 +313,7 @@ function adjustClipboardButtons(links){
                 clipboardIcon.animate({ color: '#fff' }, animationDuration);
                 
             }else{
-                clipboardIcon.text('filter_'+amount);
+                clipboardIcon.text('filter_'+linkAmount);
                 clipboardButton.css('cursor', 'pointer');
                 
                 clipboardButton.animate({ backgroundColor: "#e62117" }, animationDuration );
@@ -311,16 +327,16 @@ var itemHoverIn = function(){
     
     $(this).css('background-color', '#f2f2f2');
     $(this).find('li.channelDescription').css('background-color', '#f2f2f2');
-    $(this).find('div.closeButton').css('background-color', '#f2f2f2');
-    $(this).find('div.closeButton').css('display', 'flex');
+    $(this).find('div.subAction').css('background-color', '#f2f2f2');
+    $(this).find('div.subActionContainer').css('display', 'flex');
 }
 
 var itemHoverOut = function(){
     
     $(this).css('background-color', '#fff');
     $(this).find('li.channelDescription').css('background-color', '#fff');
-    $(this).find('div.closeButton').css('background-color', '#fff');
-    $(this).find('div.closeButton').css('display', 'none');
+    $(this).find('div.subAction').css('background-color', '#fff');
+    $(this).find('div.subActionContainer').css('display', 'none');
 }
 
 var removeHoverIn = function(){
@@ -333,5 +349,14 @@ var removeHoverOut = function(){
     $(this).find('i.material-icons').removeClass('red');
 }
 
+function setPopupOffline(){
+    
+    $('li.action#toggleAdd').hide();
+    $('li.action#rescan').hide();
+    $('li.action#resetCopyHistory').hide();
+    $('div#offline').css('display', 'flex');
+    $('ul.container#actionContainer').css('flex-flow', 'column');
+    $('li.action#closePopup').css('align-self', 'flex-end');
+}
 
 

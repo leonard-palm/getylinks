@@ -3,13 +3,19 @@ var apikey = "AIzaSyCkR8GNk7w464UkHX9afFc412bTn1uC0Jo";
 
 function init(){
     
+    if(!navigator.onLine){
+        setPopupOffline();
+        console.error('No Internet Connection.')
+        return;
+    }
+    
     //Set my custom YouTube-API Key
     gapi.client.setApiKey(apikey);
     
     //Load YouTube-API
     gapi.client.load("youtube", "v3", function(){
         
-        initStorage(function(retcode){
+        initStorage(function(){
             
             updateChannelInfos(function(){
                 
@@ -319,7 +325,7 @@ function getVideos(ylinks, i, warnings, onComplete) {
         'params': {
           'part': 'snippet',
           'channelId': ylinks.subscriptions[i].id,
-          'maxResults': 20,
+          'maxResults': 10,
           'type': 'video',
           'order': 'date'
         }
@@ -364,14 +370,14 @@ function getVideos(ylinks, i, warnings, onComplete) {
     
 };
 
-function clearCopyHistory(){
+function resetCopyHistory(){
     
     var linkContainer;
     
     chrome.storage.getYLinks(function(ylinks){
        
         if(!ylinks || !ylinks.copyHistory){
-            console.error('Clearing Copy History failed.');
+            console.error('Resetting Copy History failed.');
             return;
         }
         
@@ -381,7 +387,7 @@ function clearCopyHistory(){
         
         chrome.storage.updateYLinks(ylinks, function(retcode){
             if(retcode != 0){
-                console.error('Clearing Copy History failed.');
+                console.error('Resetting Copy History failed.');
             }else{
                 scan(function(links){
                     adjustClipboardButtons(links);
@@ -394,6 +400,38 @@ function clearCopyHistory(){
         linkContainer.select();
         document.execCommand("copy");
         
+    });
+}
+
+function resetHistorySub(channelID){
+    
+    var copyHistoryIndex;
+    
+    chrome.storage.getYLinks(function(ylinks){
+       
+        if(!ylinks || !ylinks.copyHistory){
+            console.error('Resetting Copy History failed.');
+            return;
+        }
+        
+        copyHistoryIndex = ylinks.copyHistory.findIndex(c => c.channelID == channelID);
+        
+        if(copyHistoryIndex < 0){
+            console.error('Resetting Copy History failed.');
+            return;
+        }
+        
+        ylinks.copyHistory[copyHistoryIndex].videoLinks = [];
+        
+        chrome.storage.updateYLinks(ylinks, function(retcode){
+            if(retcode != 0){
+                console.error('Resetting Copy History failed.');
+            }else{
+                scan(function(links){
+                    adjustClipboardButtons(links);
+                });     
+            }
+        });
     });
 }
 
