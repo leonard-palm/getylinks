@@ -16,11 +16,6 @@ $(document).ready(function(){
                 adjustClipboardButtons(links);
             });     
         });
-    
-        $('li.action#resetCopyHistory').click(function(){
-            resetCopyHistory();
-        });
-    
     }
     
 });
@@ -205,7 +200,7 @@ function toggleadd(onFinish){
         $buttonadd.find('a').text('Cancel');
         $buttonadd.find('i.material-icons').text('remove_circle');
     }else{
-        $buttonadd.find('a').text('Add Channel');
+        $buttonadd.find('a').text('Add Channel / Playlist');
         $buttonadd.find('i.material-icons').text('subscriptions');
     }
     

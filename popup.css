@@ -90,7 +90,7 @@ li.item{
 
 #toggleAdd{
     
-    width: 120px;
+    width: auto;
 
 }
 
@@ -161,9 +161,16 @@ li.item{
     position: relative;
     margin-left: 0px;
     
-    width: 98%;
+    width: 90%;
     height: 18px;
-
+    
+    outline: none;
+    
+    background: #fff;
+    border: 1px solid #ebebeb;
+    font: 14px/20px Roboto Mono,monospace;
+    border-radius: 2px;
+    padding: 7px 10px;
 }
 
 #buttonAddContainer{
@@ -227,15 +234,14 @@ li.item{
 
 #actionContainer {
     
-    flex-grow: 1;
     flex-flow: row;
-    justify-content: space-between;
     
 }
 
 .action {
     
-    padding: 4px;
+    padding: 4px 8px;
+    margin-right: 8px;
     
     background-color: #ffffff;
     font-size: 13px;
@@ -344,4 +350,16 @@ li.item{
     flex-flow: column;
     align-items: center;
     justify-content: center;
+}
+
+#linkInput:focus {
+    
+    border-bottom: 2px solid #c51109;
+}
+
+#closePopup {
+    
+    margin-left: auto;
+    margin-right: 0px;
+    padding: 4px 4px;
 }

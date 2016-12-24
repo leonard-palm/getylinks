@@ -333,6 +333,8 @@ function getVideos(ylinks, i, warnings, onComplete) {
 
     requestPlaylist.execute(function(data){
         
+        console.log(data);
+        
         //Got Error
         if(data.error || !data.items){
             console.error('GET videos at "'+ylinks.subscriptions[i].id+'" failed.');
@@ -348,7 +350,8 @@ function getVideos(ylinks, i, warnings, onComplete) {
             
             if(storageLinkIndex >= 0){
                 $.each(data.items, function(i, videoEntry){
-                    if(ylinks.copyHistory[storageCopyHistoryIndex].videoLinks.indexOf(videoEntry.id.videoId) == -1){
+                    if(ylinks.copyHistory[storageCopyHistoryIndex].videoLinks.indexOf(videoEntry.id.videoId) == -1
+                       && videoEntry.snippet.liveBroadcastContent != 'live'){
                         ylinks.links[storageLinkIndex].videoLinks.push(videoEntry.id.videoId);
                     }
                 });
@@ -370,38 +373,7 @@ function getVideos(ylinks, i, warnings, onComplete) {
     
 };
 
-function resetCopyHistory(){
-    
-    var linkContainer;
-    
-    chrome.storage.getYLinks(function(ylinks){
-       
-        if(!ylinks || !ylinks.copyHistory){
-            console.error('Resetting Copy History failed.');
-            return;
-        }
-        
-        $.each(ylinks.copyHistory, function(i, copyHistoryEntry){
-            copyHistoryEntry.videoLinks = [];
-        });
-        
-        chrome.storage.updateYLinks(ylinks, function(retcode){
-            if(retcode != 0){
-                console.error('Resetting Copy History failed.');
-            }else{
-                scan(function(links){
-                    adjustClipboardButtons(links);
-                });     
-            }
-        });
-        
-        linkContainer = $('input#linkContainer');
-        linkContainer.val('; ');
-        linkContainer.select();
-        document.execCommand("copy");
-        
-    });
-}
+
 
 function resetHistorySub(channelID){
     
