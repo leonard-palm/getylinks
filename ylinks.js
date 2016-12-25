@@ -1,5 +1,7 @@
 
-var apikey = "AIzaSyCkR8GNk7w464UkHX9afFc412bTn1uC0Jo";
+const API_KEY              = "AIzaSyCkR8GNk7w464UkHX9afFc412bTn1uC0Jo";
+const CHANNEL_TYPE_CHANNEL = 'CHANNEL';
+const CHANNEL_TYPE_USER    = 'USER';
 
 function init(){
     
@@ -10,7 +12,7 @@ function init(){
     }
     
     //Set my custom YouTube-API Key
-    gapi.client.setApiKey(apikey);
+    gapi.client.setApiKey(API_KEY);
     
     //Load YouTube-API
     gapi.client.load("youtube", "v3", function(){
@@ -61,61 +63,81 @@ function scan(onCompleteScan){
     });
 }
 
-function addChannel(channelLink){
+function addContent(link){
     
-    var channelIdentifyer = '/channel/';
-    var userIdentifyer = '/user/';
-    var startIndex;
-    var channelType;
-    var channelID;
+    const channelMatcher  = /www\.youtube\.com\/channel\//g;
+    const userMatcher     = /www\.youtube\.com\/user\//g
+    const playlistMatcher = /www\.youtube\.com\/playlist\?list=/g;
     
-    if(channelLink.length <= 0) return;
+    const channelIdent  = '/channel/';
+    const userIdent     = '/user/';
+    const playlistIdent = '/playlist?list=';
     
-    if(channelLink.includes(channelIdentifyer)){
-        channelType = 'channel';
-        startIndex = channelLink.lastIndexOf(channelIdentifyer) + channelIdentifyer.length;
-    }else if(channelLink.includes(userIdentifyer)){
-        channelType = 'user';
-        startIndex = channelLink.lastIndexOf(userIdentifyer) + userIdentifyer.length;
+    
+    if(link.match(channelMatcher)){
+        
+        addChannel( extractIdentValue(link, channelIdent), CHANNEL_TYPE_CHANNEL );
+        
+    }else if(link.match(userMatcher)){
+        
+        addChannel( extractIdentValue(link, userIdent), CHANNEL_TYPE_USER );
+        
+    }else if(link.match(playlistMatcher)){
+        
+        addPlaylist( extractIdentValue(link, playlistIdent) );
+        
     }else{
+        
+        animatePulse('red', $('li#enterLink'));
+        console.error('Adding content failed.');
+    }
+    
+}
+
+function extractIdentValue(link, ident){
+    
+    if( link.indexOf(ident) === -1 ) return '';
+    var identVal = link.substr( link.indexOf(ident) + ident.length, link.length );
+    return ( identVal.indexOf('/') != -1 ) ? identVal.substr( 0, identVal.indexOf('/') ) : identVal;
+}
+
+function addChannel(channelName, channelType){
+    
+    var newSub;
+    
+    if( channelName.length === 0 || channelType.length === 0 ){
         animatePulse('red', $('li#enterLink'));
         console.error('Adding channel failed (ID:'+channelID+').');
         return;
-    }
-    
-    channelID = channelLink.substring(startIndex, channelLink.length);
-    
-    if(channelID.indexOf('/') != -1){
-        channelID = channelID.substring(0, channelLink.substring(startIndex, channelLink.length).indexOf('/'));
     }
     
     chrome.storage.getYLinks(function(ylinks){
        
         if(!ylinks) return;
         
-        getChannelInfo(channelID, channelType, function(channelID, info, statistics){
+        getChannelInfo(channelName, channelType, function(channelID, channelInfo, channelStats){
             
-            if(!info || subsContain(ylinks.subscriptions, channelID)){
+            if(!channelInfo || subsContain(ylinks.subscriptions, channelID)){
                 animatePulse('red', $('li#enterLink'));
                 console.error('Adding channel failed (ID:'+channelID+').');
                 return;
             }
             
-            var newSub = {'id'        : channelID,
-                          'info'      : info, 
-                          'statistics': statistics};
+            newSub = { 'id'        : channelID,
+                       'type'      : 'channel',
+                       'info'      : channelInfo, 
+                       'statistics': channelStats };
             
             ylinks.subscriptions.push(newSub);
-                    
+            
             adjustStorage(ylinks, function(retcode){
 
-                if(retcode == 0){
+                if(retcode === 0){
                     
                     console.log('Added channel successfully (ID:'+channelID+').');
                     
                     removeDummySub();
                     toggleadd(function(){
-                        
                         insertNewSub(newSub, function(){
                             scan(function(links){
                                 adjustClipboardButtons(links);
@@ -132,6 +154,11 @@ function addChannel(channelLink){
         });
         
     });
+    
+}
+
+function addPlaylist(playlistLink){
+    
     
 }
 
@@ -175,20 +202,19 @@ function getChannelInfo(channelID, channelType, onInfoGET){
     var snippetParams = {};
     var statisticsParams = {};
     
-    if(channelID.length <= 0 || channelType.length <= 0){
+    if(channelID.length === 0 || channelType.length === 0){
         
         console.error('GET channelInfo failed (ID:'+channelID+').');
         onInfoGET(undefined, undefined, undefined);
         return;
-        
     }
     
-    if(channelType == 'channel'){
+    if(channelType === CHANNEL_TYPE_CHANNEL){
         
         snippetParams['id'] = channelID;
         statisticsParams['id'] = channelID;
         
-    }else if(channelType == 'user'){
+    }else if(channelType === CHANNEL_TYPE_USER){
         
         snippetParams['forUsername'] = channelID;
         statisticsParams['forUsername'] = channelID;
@@ -196,8 +222,8 @@ function getChannelInfo(channelID, channelType, onInfoGET){
     
     snippetParams['part'] = 'snippet';
     statisticsParams['part'] = 'statistics';
-    statisticsParams['key'] = apikey;
-    snippetParams['key'] = apikey;
+    statisticsParams['key'] = API_KEY;
+    snippetParams['key'] = API_KEY;
     
     snippetGET = $.get(gapiURL, snippetParams);
     statisticsGET = $.get(gapiURL, statisticsParams);
@@ -265,7 +291,7 @@ function updateChannelInfo(subscriptions, i, changes, warnings, onComplete){
     var changesMade = false;
     var errorOccured = false;
     
-    getChannelInfo(subscriptions[i].id, 'channel', function(channelID, info, statistics){
+    getChannelInfo(subscriptions[i].id, CHANNEL_TYPE_CHANNEL, function(channelID, info, statistics){
 
          if(!channelID || !info){
              console.error('Updating channel infos failed at "'+subscriptions[i].id+'".');
@@ -332,8 +358,6 @@ function getVideos(ylinks, i, warnings, onComplete) {
     });
 
     requestPlaylist.execute(function(data){
-        
-        console.log(data);
         
         //Got Error
         if(data.error || !data.items){

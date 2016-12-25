@@ -8,7 +8,7 @@ $(document).ready(function(){
         });
 
         $('li#buttonAddContainer').click(function(){
-            addChannel($('input#linkInput').val());
+            addContent($('input#linkInput').val());
         });
 
         $('li.action#rescan').click(function(){
