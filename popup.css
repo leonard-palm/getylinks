@@ -64,7 +64,7 @@ li.item{
     cursor: pointer;
 }
 
-.channelDescription{
+.subDescription{
     
     width: 58%;
     
@@ -272,7 +272,7 @@ li.item{
     font-weight: bold;
 }
 
-.channelTitle {
+.subTitle {
     
     width: 100%;
     
@@ -362,4 +362,10 @@ li.item{
     margin-left: auto;
     margin-right: 0px;
     padding: 4px 4px;
+}
+
+.playlistThumbnail {
+    
+    width: 117px;
+    cursor: pointer;
 }

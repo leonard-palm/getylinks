@@ -1,20 +1,24 @@
+const CONTENT_TYPE_CHANNEL  = 'channel';
+const CONTENT_TYPE_PLAYLIST = 'playlist';
+
 function initStorage(onCompleteInit){
     
     
-    var initialSubscriptions = [];
-    var initialLinks = [];
-    var initialCopyHistory = [];
+    const initialSubscriptions = [];
+    const initialLinks         = { channels : [],
+                                   playlists: [] };
+    const initialCopyHistory   = { channels : [],
+                                   playlists: [] };
     
-    var initialStorage = {"ylinks": {"subscriptions" : initialSubscriptions,
-                                     "links"         : initialLinks,
-                                     "copyHistory"   : initialCopyHistory}};
+    const initialStorage = { 'ylinks': { 'subscriptions' : initialSubscriptions,
+                                         'links'         : initialLinks,
+                                         'copyHistory'   : initialCopyHistory } };
     
-    
-    chrome.storage.sync.get("ylinks", function(data){
+    chrome.storage.sync.get('ylinks', function(data){
 
         if(!data.ylinks){
-            chrome.storage.sync.set({"ylinks": initialStorage.ylinks}, function(){
-
+            
+            chrome.storage.sync.set( { 'ylinks': initialStorage.ylinks }, function(){
                 if(!chrome.runtime.lastError){
                     console.log('Initialization of storage finished successfully.');
                     onCompleteInit();
@@ -23,13 +27,10 @@ function initStorage(onCompleteInit){
                 }
             });
         }else{
-            adjustStorage(data.ylinks, function(retcode){
-                if(retcode === 0){
-                    console.log('Initialization of storage finished successfully.');
-                    onCompleteInit();
-                }else{
-                    console.error('Initialization of storage failed.');
-                }
+            
+            adjustStorage(data.ylinks, function(){
+                console.log('Initialization of storage finished successfully.');
+                onCompleteInit();
             });
         } 
     });
@@ -37,82 +38,86 @@ function initStorage(onCompleteInit){
 }
 
 function adjustStorage(ylinks, onCompleteAdjust){
-       
-    if(!ylinks){
-        onCompleteAdjust(1);
-        return;
-    }
 
-    var subscriptions = ylinks.subscriptions;
-    var links = ylinks.links;
-    var copyHistory = ylinks.copyHistory;
+    var subs      = ylinks.subscriptions;
+    var links     = ylinks.links;
+    var cpHistory = ylinks.copyHistory;
+    
+    var linksField, cpHistField;
 
-    $.each(subscriptions, function(i, subEntry){
-
-        //Add missing key-entries to "ylinks.links"
-        if( !links.find(link => link.channelID == subEntry.id) ){
-            links.push({"channelID": subEntry.id,
-                        "videoLinks": []});
+    $.each(subs, function(i, subEntry){
+        
+        if(subEntry.type === CONTENT_TYPE_CHANNEL){
+            
+            linksField = links.channels;
+            cpHistField = cpHistory.channels;
+            
+        }else if(subEntry.type === CONTENT_TYPE_PLAYLIST){
+            
+            linksField = links.playlists;
+            cpHistField = cpHistory.playlists;
+        }
+        
+        //Add missing key-entries to links array
+        if( !linksField.find( l => l.id === subEntry.id) ){
+            linksField.push( { 'id'        : subEntry.id,
+                               'videoLinks': [] } );
         }
 
-        //Add missing key-entries to "ylinks.copyHistory"
-        if( !copyHistory.find( cpHist => cpHist.channelID == subEntry.id) ){
-            copyHistory.push({"channelID": subEntry.id, 
-                              "videoLinks": []});
-        }
-    });
-
-    //Remove outworn key-entries from "ylinks.links"
-    links = links.filter(function(linksEntry){
-        return subsContain(subscriptions, linksEntry.channelID);
-        //return subscriptions.indexOf(linksEntry.channelID) >= 0;
-    });
-    
-    //Remove outworn key-entries from "ylinks.copyHistory"
-    copyHistory = copyHistory.filter(function(cpHistEntry){
-        return subsContain(subscriptions, cpHistEntry.channelID);
-       //return subscriptions.indexOf(cpHistEntry.channelID) >= 0; 
-    });
-    
-    //Clear previously selected video links from "ylinks.links"
-    $.each(links, function(i, linksEntry){
-       linksEntry.videoLinks = []; 
-    });
-    
-    ylinks.subscriptions = subscriptions;
-    ylinks.links = links;
-    ylinks.copyHistory = copyHistory;
-    
-    chrome.storage.updateYLinks(ylinks, function(retcode){
-        if(retcode === 0){
-            console.log('Adjusted storage successfully.');
-        }else{
-            console.error('Adjusting storage failed.')
-        }
-        onCompleteAdjust(retcode);
-    });
-}
-
-chrome.storage.getYLinks = function(onRead){
-    chrome.storage.sync.get("ylinks", function(data){
-        if(data.ylinks){
-            onRead(data.ylinks);
-        }else{
-            console.error('Reading storage failed.');
-            onRead(undefined);
+        //Add missing key-entries to copy-history
+        if( !cpHistField.find( cH => cH.id === subEntry.id ) ){
+            cpHistField.push( { 'id'        : subEntry.id, 
+                                'videoLinks': [] } );
         }
         
     });
+
+    //Remove outworn key-entries from links array
+    links.channels = links.channels.filter(function(linkEntry){
+        return subsContain(subs, linkEntry.id);
+    });
+    
+    links.playlists = links.playlists.filter(function(linkEntry){
+        return subsContain(subs, linkEntry.id); 
+    });
+    
+    //Remove outworn key-entries from copy-history
+    cpHistory.channels = cpHistory.channels.filter(function(cpHistEntry){
+        return subsContain(subs, cpHistEntry.id);
+    });
+    
+    cpHistory.playlists = cpHistory.playlists.filter(function(cpHistEntry){
+        return subsContain(subs, cpHistEntry.id);
+    });
+    
+    //Clear previously selected video links from links array
+    $.each(links, function(key, linkField){
+       $.each(linkField, function(i, linkEntry){
+           linkEntry.videoLinks = [];
+       }) 
+    });
+    
+    ylinks.subscriptions = subs;
+    ylinks.links         = links;
+    ylinks.copyHistory   = cpHistory;
+    
+    updateYLinks(ylinks, function(){
+        console.log('Adjusted storage successfully.');
+        onCompleteAdjust();
+    });
 }
 
-chrome.storage.updateYLinks = function(ylinks, onUpdate){
+function getYLinks(onRead){
+    chrome.storage.sync.get('ylinks', function(data){
+        if(data.ylinks) onRead(data.ylinks);
+        else            console.error('Reading storage failed.');
+    });
+};
+
+function updateYLinks(ylinks, onUpdate){
     chrome.storage.sync.set({"ylinks": ylinks}, function(){
-        if(chrome.runtime.lastError){
-            console.error("Updating storage failed.");
-            onUpdate(1);
-        }else{
-            onUpdate(0);
-        }
+        if(!chrome.runtime.lastError) onUpdate();
+        else                          console.error("Updating storage failed.");
     });
 }
 

@@ -18,66 +18,84 @@ $(document).ready(function(){
         });
     }
     
+    $('li.action#closePopup').click(function(){
+        
+        var subElements = $('li.item').filter(function(){
+           return $(this).attr('id') != 'enterLink'; 
+        });
+        
+        subElements.toggle(500, function(){
+            console.log('Displayed sub [ID:' + $(this).attr("id") + '] successfully.');
+        }); 
+        
+        subElements.promise().done(function(){ window.close() });
+    });
+    
 });
 
 function displaySubscriptions(onFinish){
     
-    var channelElements = $();
-    var channelElement;
-    var toggleDuration = 500;
+    var subElements = $();
+    const TOGGLE_DURATION = 500;
     
-    chrome.storage.getYLinks(function(ylinks){
+    getYLinks(function(ylinks){
         
-        if(!ylinks || !ylinks.subscriptions || ylinks.subscriptions.length == 0){
+        if(ylinks.subscriptions.length === 0){
             insertDummySub(function(){
                 return; 
             });
         }
-
-        $.each(ylinks.subscriptions, function(i, subEntry){
+        
+        var subChannelGET = $.get('subChannel.html');
+        var subPlaylistGET = $.get('subPlaylist.html');
+        
+        $.when(subChannelGET, subPlaylistGET).done(function(subChannelHTML, subPlaylistHTML){
             
-            channelElement = $("<li class='item' subID='"+subEntry.id+"'> \
-                                    <ul class='containersub'> \
-                                        <li class='itemsub channelThumbnail'> \
-                                            <img src = '"+subEntry.info.thumbnail+"'> \
-                                        </li> \
-                                        <li class='itemsub channelDescription'> \
-                                            <a class='channelTitle'>"+subEntry.info.title+" <br></a> \
-                                            <div class='statistics'> \
-                                                <a class='count'>"+subEntry.statistics.subscriberCount+"</a> Subscribers <br> \
-                                                <a class='count'>"+subEntry.statistics.videoCount+"</a> Videos <br> \
-                                            </div> \
-                                            <div class='subActionContainer'> \
-                                                <div class='subAction' id='removeSub'> \
-                                                    <i class='material-icons md-18'>delete_forever</i> \
-                                                    <a style='margin-left: 3px'>Remove</a> \
-                                                </div> \
-                                                <div class='subAction' id='resetHistorySub'> \
-                                                    <i class='material-icons md-18'>history</i> \
-                                                    <a style='margin-left: 3px'>Reset Copy History</a> \
-                                                </div> \
-                                            </div> \
-                                        </li> \
-                                        <li class='itemsub buttonClipboard'> \
-                                            <i class='material-icons md-36 red'>filter_none</i> \
-                                        </li> \
-                                    </ul> \
-                                </li>");
+            $.each(ylinks.subscriptions, function(i, subEntry){
+                
+                channelElement = $(subChannelHTML[0]);
+                playlistElement = $(subPlaylistHTML[0]);
+               
+                if( subEntry.type === CONTENT_TYPE_CHANNEL && subChannelHTML[1] === 'success' ){
+                    
+                    //Personalize the channel item
+                    channelElement.attr('id', subEntry.id);
+                    channelElement.attr('type', subEntry.type);
+                    channelElement.find('img').attr('src', subEntry.info.thumbnail);
+                    channelElement.find('a.subTitle').text(subEntry.info.title);
+                    channelElement.find('a.count:first').text(subEntry.statistics.subscriberCount);
+                    channelElement.find('a.count:last').text(subEntry.statistics.videoCount);
 
-            channelElements = channelElements.add(channelElement);
-        });
-        
-        $.each(channelElements, function(i, channelElement){
-            assignListenersToChannelElement(channelElement); 
-        });
-        
-        channelElements.insertAfter($("li#enterLink"));
-        
-        channelElements.slideToggle(toggleDuration, function(){
-            console.log('Displayed sub [ID:'+$(this).attr("subID")+'] successfully.');
-        }); 
-        
-        channelElements.promise().done(function(){
+                    assignListenersToSubElement(channelElement); 
+                    
+                    subElements = subElements.add(channelElement);
+                    
+                }else if( subEntry.type === CONTENT_TYPE_PLAYLIST && subPlaylistHTML[1] === 'success' ){
+                    
+                    //Personalize the playlist item
+                    playlistElement.attr('id', subEntry.id);
+                    playlistElement.attr('type', subEntry.type);
+                    playlistElement.find('img').attr('src', subEntry.info.thumbnail);
+                    playlistElement.find('a.subTitle').text(subEntry.info.title);
+                    
+                    subElements = subElements.add(playlistElement);
+                }
+                
+            });
+            
+            subElements.insertAfter( $("li#enterLink") );
+
+            subElements.slideToggle(TOGGLE_DURATION, function(){
+                console.log('Displayed sub (ID:' + $(this).attr("id") + ') successfully.');
+            }); 
+
+            subElements.promise().done(function(){ 
+                onFinish();
+            });
+            
+        }).fail(function(response){
+            
+            console.error(response);
             onFinish();
         });
         
@@ -85,80 +103,85 @@ function displaySubscriptions(onFinish){
 
 }
 
-function insertNewSub(sub, onInserted){
+
+
+function insertChannel(newChannel, onInserted){
     
-    var channelElement;
+    const TOGGLE_DURATION = 500;
     
-    if(!sub){
-        console.error('Insertion of new sub failed (sub undefined).');
-        return;
-    }
-    
-    channelElement = $("<li class='item' subID='"+sub.id+"'> \
-                            <ul class='containersub'> \
-                                <li class='itemsub channelThumbnail'> \
-                                    <img src = '"+sub.info.thumbnail+"'> \
-                                </li> \
-                                <li class='itemsub channelDescription'> \
-                                    <a class='channelTitle'>"+sub.info.title+" <br></a> \
-                                    <div class='statistics'> \
-                                        <a class='count'>"+sub.statistics.subscriberCount+"</a> Subscribers <br> \
-                                        <a class='count'>"+sub.statistics.videoCount+"</a> Videos <br> \
-                                    </div> \
-                                    <div class='subActionContainer'> \
-                                        <div class='subAction' id='removeSub'> \
-                                            <i class='material-icons md-18'>delete_forever</i> \
-                                            <a style='margin-left: 3px'>Remove</a> \
-                                        </div> \
-                                        <div class='subAction' id='resetHistorySub'> \
-                                            <i class='material-icons md-18'>history</i> \
-                                            <a style='margin-left: 3px'>Reset Copy History</a> \
-                                        </div> \
-                                    </div> \
-                                </li> \
-                                <li class='itemsub buttonClipboard'> \
-                                    <i class='material-icons md-36 red'>filter_none</i> \
-                                </li> \
-                            </ul> \
-                        </li>");
-    
-    console.log(channelElement);
-    
-    
-    assignListenersToChannelElement(channelElement);
-    
-    channelElement.insertAfter($("li#enterLink"));
-    
-    channelElement.slideToggle(500, function(){
-        console.log('Inserted new sub [ID:'+sub.id+'] successfully.');
-        animatePulse('green', $(this));
-        onInserted();
+    //GET HTML content for one subscription item
+    $.get('subChannel.html', function(subChannelHTML){
+
+        //Parse HTML-String into JQuery-Object
+        subElement = $(subChannelHTML);
+
+        //Personalize the subscription item
+        subElement.attr('id', newChannel.id);
+        subElement.attr('type', newChannel.type);
+        subElement.find('img').attr('src', newChannel.info.thumbnail);
+        subElement.find('a.subTitle').text(newChannel.info.title);
+        subElement.find('a.count:first').text(newChannel.statistics.subscriberCount);
+        subElement.find('a.count:last').text(newChannel.statistics.videoCount);
+
+        assignListenersToSubElement(subElement); 
+
+        subElement.insertAfter( $("li#enterLink") );
+
+        subElement.slideToggle(TOGGLE_DURATION, function(){
+            
+            console.log('Displayed channel [ID:' + $(this).attr("id") + '] successfully.');
+            animatePulse('green', $(this));
+            onInserted();
+        }); 
     });
+    
 }
 
-function assignListenersToChannelElement(element){
-        
-    $(element).find('div.subAction#removeSub').click(removeSub);
-    $(element).find('li.buttonClipboard').click(copyToClipboard);
+function insertPlaylist(newPlaylist, onInserted){
+    
+    onInserted();
+}
+
+function assignListenersToSubElement(element){
+    
     $(element).hover(itemHoverIn, itemHoverOut);
     $(element).find('div.subAction#removeSub').hover(removeHoverIn, removeHoverOut);
     
+    $(element).find('li.buttonClipboard').click(function(){
+        
+        var item = $(this).parents('li.item');
+        copyToClipboard(item.attr('id'), item.attr('type'));
+    });
+    
+    $(element).find('div.subAction#removeSub').click(function(){
+        
+        var item = $(this).parents('li.item');
+        removeSub(item.attr('id'), item.attr('type'));
+    });
+    
     $(element).find('div.subAction#resetHistorySub').click(function(){
-        resetHistorySub($(this).parents('li.item').attr('subID'));  
+        
+        var item = $(this).parents('li.item');
+        resetHistory(item.attr('id'), item.attr('type'));  
     });
     
-    $(element).find('li.channelThumbnail').click(function(){
-        openChannel($(this).parents('li.item').attr('subID'));
-    });
-    
-    $(element).find('a.channelTitle').click(function(){
-        openChannel($(this).parents('li.item').attr('subID'));
+    $(element).find('li.channelThumbnail, a.channelTitle').click(function(){
+        
+        var item = $(this).parents('li.item');
+        var id = item.attr('id');
+        var type = item.attr('type');
+        
+        if(type === CONTENT_TYPE_CHANNEL){
+            openChannel(id);
+        }else if(type === CONTENT_TYPE_PLAYLIST){
+            openPlaylist(id);
+        }
     });
 }
 
 function removeOldSub(channelID, onFinish){
     
-    var oldSub = $("li[subID = '"+channelID+"']");
+    var oldSub = $("li[id = '"+channelID+"']");
     
     oldSub.slideToggle(300, function(){
         oldSub.remove();
@@ -231,97 +254,101 @@ function animatePulse(color, element){
     }, 1000);
 }
 
-
-var removeSub = function(){
+function removeSub(id, type){
     
-    removeChannel($(this).parents('li.item').attr('subID'));
+    if(type === CONTENT_TYPE_CHANNEL){
+        removeChannel(id);
+    }else if(type === CONTENT_TYPE_PLAYLIST){
+        removePlaylist(id);
+    }
 }
 
-var copyToClipboard = function(){
+function copyToClipboard(id, type){
     
-    var subID = $(this).parents('li.item').attr('subID');
+    var linksField, cpHistField, linksIndex, cpHistIndex;
+    
     var linkContainer = $('input#linkContainer');
-    var linkIndex;
-    var copyHistoryIndex;
     
-    chrome.storage.getYLinks(function(ylinks){
-       
-        if(!ylinks || !ylinks.links) return;
+    getYLinks(function(ylinks){
         
-        linkIndex = ylinks.links.findIndex(l => l.channelID == subID);
+        if(type === CONTENT_TYPE_CHANNEL){
+            linksField = ylinks.links.channels;
+            cpHistField = ylinks.copyHistory.channels;
+        }else if(type === CONTENT_TYPE_PLAYLIST){
+            linksField = ylinks.links.playlists;
+            cpHistField = ylinks.copyHistory.playlists;
+        }
         
-        if(linkIndex < 0) return;
+        linksIndex  = linksField.findIndex( l => l.id === id );
+        cpHistIndex = cpHistField.findIndex( cH => cH.id === id );
         
-        copyHistoryIndex = ylinks.copyHistory.findIndex(c => c.channelID == subID);
-        
-        $.each(ylinks.links[linkIndex].videoLinks, function(i, link){
-            
+        //Fill invisible textfiled with link's seperated by space
+        $.each(linksField[linksIndex].videoLinks, function(i, link){
             linkContainer.val(linkContainer.val() + 'www.youtube.com/watch?v=' + link + ' ');
-            ylinks.copyHistory[copyHistoryIndex].videoLinks.push(link);
+            cpHistField[cpHistIndex].videoLinks.push(link);
         });
         
+        linksField[linksIndex].videoLinks = [];
         
-        ylinks.links[linkIndex].videoLinks = [];
-        
+        //Copy content from invisible textfield to clipboard
         linkContainer.select();
-        document.execCommand("copy");
+        document.execCommand('copy');
         
-        chrome.storage.updateYLinks(ylinks, function(retcode){
-        
-            if(retcode != 0) return;
-            
+        updateYLinks(ylinks, function(){
             adjustClipboardButtons(ylinks.links);
         });
-    
+        
     });
+    
 }
 
 function adjustClipboardButtons(links){
     
-    var clipboardButton;
-    var clipboardIcon;
+    var clipboardButton, clipboardIcon;
     var linkAmount;
-    var animationDuration = 1000;
+    const ANIMATION_DURATION = 1000;
     
-    $.each(links, function(i, linkEntry){
+    $.each(links, function(key, linksField){
         
-        linkAmount = linkEntry.videoLinks.length;
-        clipboardButton = $("li[subID = '"+linkEntry.channelID+"']").find('li.buttonClipboard');
-        clipboardIcon = clipboardButton.find('i.material-icons');
-        
-        if(clipboardIcon || clipboardIcon.length == 1){
-        
-            if(linkAmount <= 0){
-                
-                clipboardIcon.text('filter_none');
-                clipboardButton.css('cursor', 'default');
-                
-                clipboardButton.animate({ backgroundColor: "#a3a3a3" }, animationDuration );
-                clipboardIcon.animate({ color: '#e62117' }, animationDuration);
-                
-            }else if(linkAmount > 9){
-                
-                clipboardIcon.text('filter_9_plus');
-                clipboardButton.css('cursor', 'pointer');
-                
-                clipboardButton.animate({ backgroundColor: "#e62117" }, animationDuration );
-                clipboardIcon.animate({ color: '#fff' }, animationDuration);
-                
-            }else{
-                clipboardIcon.text('filter_'+linkAmount);
-                clipboardButton.css('cursor', 'pointer');
-                
-                clipboardButton.animate({ backgroundColor: "#e62117" }, animationDuration );
-                clipboardIcon.animate({ color: '#fff' }, animationDuration);
+        $.each(linksField, function(i, linkEntry){
+            
+            linkAmount      = linkEntry.videoLinks.length;
+            clipboardButton = $("li[id = '"+linkEntry.id+"']").find('li.buttonClipboard');
+            clipboardIcon   = clipboardButton.find('i.material-icons');
+
+            if(clipboardIcon || clipboardIcon.length === 1){
+
+                if(linkAmount === 0){
+
+                    clipboardIcon.text('filter_none');
+                    clipboardButton.css('cursor', 'default');
+                    clipboardButton.animate({ backgroundColor: "#a3a3a3" }, ANIMATION_DURATION );
+                    clipboardIcon.animate({ color: '#e62117' }, ANIMATION_DURATION);
+
+                }else if(linkAmount > 9){
+
+                    clipboardIcon.text('filter_9_plus');
+                    clipboardButton.css('cursor', 'pointer');
+                    clipboardButton.animate({ backgroundColor: "#e62117" }, ANIMATION_DURATION );
+                    clipboardIcon.animate({ color: '#fff' }, ANIMATION_DURATION);
+
+                }else{
+                    clipboardIcon.text('filter_'+linkAmount);
+                    clipboardButton.css('cursor', 'pointer');
+                    clipboardButton.animate({ backgroundColor: "#e62117" }, ANIMATION_DURATION );
+                    clipboardIcon.animate({ color: '#fff' }, ANIMATION_DURATION);
+                }
             }
-        }
+            
+        });
+        
     });
 }
 
 var itemHoverIn = function(){
     
     $(this).css('background-color', '#f2f2f2');
-    $(this).find('li.channelDescription').css('background-color', '#f2f2f2');
+    $(this).find('li.subDescription').css('background-color', '#f2f2f2');
     $(this).find('div.subAction').css('background-color', '#f2f2f2');
     $(this).find('div.subActionContainer').css('display', 'flex');
 }
@@ -329,7 +356,7 @@ var itemHoverIn = function(){
 var itemHoverOut = function(){
     
     $(this).css('background-color', '#fff');
-    $(this).find('li.channelDescription').css('background-color', '#fff');
+    $(this).find('li.subDescription').css('background-color', '#fff');
     $(this).find('div.subAction').css('background-color', '#fff');
     $(this).find('div.subActionContainer').css('display', 'none');
 }

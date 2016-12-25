@@ -35,14 +35,9 @@ function init(){
 
 function scan(onCompleteScan){
     
-    var storageLinkIndex;
-    
-    chrome.storage.getYLinks(function(ylinks){
+    getYLinks(function(ylinks){
         
-        if(!ylinks || !ylinks.subscriptions){
-            console.error('Scanning failed.');
-            return;
-        }else if(ylinks.subscriptions.length == 0){
+        if(ylinks.subscriptions.length === 0){
             console.log('Scanning finished successfull.');
             onCompleteScan(ylinks.links);
             return;
@@ -52,7 +47,7 @@ function scan(onCompleteScan){
             
             if(warnings < ylinks.subscriptions.length){
                 
-                chrome.storage.updateYLinks(ylinks, function(retcode){
+                updateYLinks(ylinks, function(){
                     console.log('Scanning finished successfull.');
                     onCompleteScan(ylinks.links);
                 });
@@ -103,7 +98,7 @@ function extractIdentValue(link, ident){
 
 function addChannel(channelName, channelType){
     
-    var newSub;
+    var newChannel;
     
     if( channelName.length === 0 || channelType.length === 0 ){
         animatePulse('red', $('li#enterLink'));
@@ -111,11 +106,9 @@ function addChannel(channelName, channelType){
         return;
     }
     
-    chrome.storage.getYLinks(function(ylinks){
-       
-        if(!ylinks) return;
+    getYLinks(function(ylinks){
         
-        getChannelInfo(channelName, channelType, function(channelID, channelInfo, channelStats){
+        getChannelInfos(channelName, channelType, function(channelID, channelInfo, channelStats){
             
             if(!channelInfo || subsContain(ylinks.subscriptions, channelID)){
                 animatePulse('red', $('li#enterLink'));
@@ -123,32 +116,25 @@ function addChannel(channelName, channelType){
                 return;
             }
             
-            newSub = { 'id'        : channelID,
-                       'type'      : 'channel',
-                       'info'      : channelInfo, 
-                       'statistics': channelStats };
+            newChannel = { 'id'        : channelID,
+                           'type'      : CONTENT_TYPE_CHANNEL,
+                           'info'      : channelInfo, 
+                           'statistics': channelStats };
             
-            ylinks.subscriptions.push(newSub);
+            ylinks.subscriptions.push(newChannel);
             
-            adjustStorage(ylinks, function(retcode){
+            adjustStorage(ylinks, function(){
+                    
+                console.log('Added channel successfully (ID:'+channelID+').');
 
-                if(retcode === 0){
-                    
-                    console.log('Added channel successfully (ID:'+channelID+').');
-                    
-                    removeDummySub();
-                    toggleadd(function(){
-                        insertNewSub(newSub, function(){
-                            scan(function(links){
-                                adjustClipboardButtons(links);
-                            });     
-                        }); 
-                    });
-                }else{
-                    
-                    animatePulse('red', $('li#enterLink'));
-                    console.error('Adding channel failed (ID:'+channelID+').');
-                }
+                removeDummySub();
+                toggleadd(function(){
+                    insertChannel(newChannel, function(){
+                        scan(function(links){
+                            adjustClipboardButtons(links);
+                        });     
+                    }); 
+                });
             }); 
             
         });
@@ -157,36 +143,40 @@ function addChannel(channelName, channelType){
     
 }
 
-function addPlaylist(playlistLink){
+function addPlaylist(playlistID){
     
+    var newSub;
     
-}
-
-function removeChannel(channelID){
+    if( playlistID.length === 0 ){
+        animatePulse('red', $('li#enterLink'));
+        console.error('Adding playlist failed (ID:'+playlistID+').');
+        return;
+    }
     
-    chrome.storage.getYLinks(function(ylinks){
-        
-        if(!ylinks || subsContain(ylinks.subscriptions, channelID) == false) return;
-        
-        ylinks.subscriptions.splice(ylinks.subscriptions.findIndex(s => s.id === channelID), 1);
-        
-        adjustStorage(ylinks, function(retcode){
-           
-            if(retcode === 0){
+    getYLinks(function(ylinks){
+       
+        getPlaylistInfos(playlistID, function(info){
+            
+            newSub = { 'id'        : playlistID,
+                       'type'      : CONTENT_TYPE_PLAYLIST,
+                       'info'      : info };
+            
+            ylinks.subscriptions.push(newSub);
+            
+            updateYLinks(ylinks, function(){
                 
-                removeOldSub(channelID, function(){
-                    console.log('Channel removed successfully (ID:'+channelID+').');
-                    
-                    if(ylinks.subscriptions.length <= 0){
-                        
-                        insertDummySub(function(){
-                            console.log('Inserted dummy sub successfully.')
-                        });
-                    }
+                console.log('Added playlist successfully (ID:'+playlistID+').');
+
+                removeDummySub();
+                toggleadd(function(){
+                    insertNewSub(newSub, function(){
+                        scan(function(links){
+                            adjustClipboardButtons(links);
+                        });     
+                    }); 
                 });
-            }else{
-                console.error('Removal of channel failed (ID:'+channelID+').')
-            }
+                
+            });
             
         });
         
@@ -194,10 +184,42 @@ function removeChannel(channelID){
     
 }
 
-function getChannelInfo(channelID, channelType, onInfoGET){
+function removeChannel(channelID){
+    
+    getYLinks(function(ylinks){
+        
+        if(!subsContain(ylinks.subscriptions, channelID)) return;
+        
+        ylinks.subscriptions.splice(ylinks.subscriptions.findIndex(s => s.id === channelID), 1);
+        
+        adjustStorage(ylinks, function(){
+                
+            removeOldSub(channelID, function(){
+                console.log('Channel removed successfully (ID:'+channelID+').');
+
+                if(ylinks.subscriptions.length <= 0){
+
+                    insertDummySub(function(){
+                        console.log('Inserted dummy sub successfully.')
+                    });
+                }
+            });
+            
+        });
+        
+    });
+    
+}
+
+function removePlaylist(playlistID){
+    
+    
+}
+
+function getChannelInfos(channelID, channelType, onInfoGET){
     
     var infoRequest;
-    var gapiURL = 'https://www.googleapis.com/youtube/v3/channels';
+    const GAPI_URL_CHANNELS = 'https://www.googleapis.com/youtube/v3/channels';
     var snippetGET, statisticsGET;
     var snippetParams = {};
     var statisticsParams = {};
@@ -211,22 +233,22 @@ function getChannelInfo(channelID, channelType, onInfoGET){
     
     if(channelType === CHANNEL_TYPE_CHANNEL){
         
-        snippetParams['id'] = channelID;
+        snippetParams['id']    = channelID;
         statisticsParams['id'] = channelID;
         
     }else if(channelType === CHANNEL_TYPE_USER){
         
-        snippetParams['forUsername'] = channelID;
+        snippetParams['forUsername']    = channelID;
         statisticsParams['forUsername'] = channelID;
     }
     
-    snippetParams['part'] = 'snippet';
+    snippetParams['part']    = 'snippet';
     statisticsParams['part'] = 'statistics';
-    statisticsParams['key'] = API_KEY;
-    snippetParams['key'] = API_KEY;
+    statisticsParams['key']  = API_KEY;
+    snippetParams['key']     = API_KEY;
     
-    snippetGET = $.get(gapiURL, snippetParams);
-    statisticsGET = $.get(gapiURL, statisticsParams);
+    snippetGET    = $.get(GAPI_URL_CHANNELS, snippetParams);
+    statisticsGET = $.get(GAPI_URL_CHANNELS, statisticsParams);
     
     $.when(snippetGET, statisticsGET).done(function(dataSnippet, dataStatistics){
 
@@ -253,13 +275,9 @@ function getChannelInfo(channelID, channelType, onInfoGET){
 
 function updateChannelInfos(onFinish){
     
-    chrome.storage.getYLinks(function(ylinks){
+    getYLinks(function(ylinks){
         
-        if(!ylinks || !ylinks.subscriptions){
-            console.error('Updating channel infos failed.');
-            onFinish();
-            return;
-        }else if(ylinks.subscriptions.length == 0){
+        if(ylinks.subscriptions.length === 0){
             onFinish();
             return;
         }
@@ -291,7 +309,7 @@ function updateChannelInfo(subscriptions, i, changes, warnings, onComplete){
     var changesMade = false;
     var errorOccured = false;
     
-    getChannelInfo(subscriptions[i].id, CHANNEL_TYPE_CHANNEL, function(channelID, info, statistics){
+    getChannelInfos(subscriptions[i].id, CHANNEL_TYPE_CHANNEL, function(channelID, info, statistics){
 
          if(!channelID || !info){
              console.error('Updating channel infos failed at "'+subscriptions[i].id+'".');
@@ -339,25 +357,58 @@ function updateChannelInfo(subscriptions, i, changes, warnings, onComplete){
              
          }
      });
+}
+
+function getPlaylistInfos(playlistID, onInfoGET){
+
+    const GAPI_URL_PLAYLISTS = 'https://www.googleapis.com/youtube/v3/playlists';
+    var infoRequest, playlistSnippet, playlistInfo;
+    
+    infoRequest = gapi.client.request({
+        'path':   GAPI_URL_PLAYLISTS,
+        'params': {
+          'part': 'snippet',
+          'id'  : playlistID
+        }
+    });
+    
+    infoRequest.execute(function(data){
+        
+        //Got Error
+        if(data.error || !data.items || !data.items[0]){
+            console.error('GET playlist info failed at '+playlistID+'.');
+            animatePulse('red', $('li#enterLink'));
+            return;
+        }
+        
+        playlistSnippet = data.items[0].snippet;
+        
+        playlistInfo = { 'title'       : snippet.title,
+                         'channelTitle': snippet.channelTitle,
+                         'thumbnail'   : snippet.thumbnails.default.url };
+        
+        onInfoGET(playlistInfo);
+    });
     
 }
 
 function getVideos(ylinks, i, warnings, onComplete) {
     
+    const GAPI_URL_SEARCH = 'https://www.googleapis.com/youtube/v3/search'
     var errorOccured = false;
     
-    var requestPlaylist = gapi.client.request({
-        'path': 'https://www.googleapis.com/youtube/v3/search',
+    var requestVideos = gapi.client.request({
+        'path':   GAPI_URL_SEARCH,
         'params': {
-          'part': 'snippet',
-          'channelId': ylinks.subscriptions[i].id,
+          'part'      : 'snippet',
+          'channelId' : ylinks.subscriptions[i].id,
           'maxResults': 10,
-          'type': 'video',
-          'order': 'date'
+          'type'      : 'video',
+          'order'     : 'date'
         }
     });
 
-    requestPlaylist.execute(function(data){
+    requestVideos.execute(function(data){
         
         //Got Error
         if(data.error || !data.items){
@@ -369,17 +420,18 @@ function getVideos(ylinks, i, warnings, onComplete) {
         if(!errorOccured && data.items && data.items.length > 0){
             
             //Fill local links
-            var storageLinkIndex = ylinks.links.findIndex(l => l.channelID == ylinks.subscriptions[i].id);
-            var storageCopyHistoryIndex = ylinks.copyHistory.findIndex(c => c.channelID == ylinks.subscriptions[i].id);
-            
-            if(storageLinkIndex >= 0){
-                $.each(data.items, function(i, videoEntry){
-                    if(ylinks.copyHistory[storageCopyHistoryIndex].videoLinks.indexOf(videoEntry.id.videoId) == -1
-                       && videoEntry.snippet.liveBroadcastContent != 'live'){
-                        ylinks.links[storageLinkIndex].videoLinks.push(videoEntry.id.videoId);
-                    }
-                });
-            }
+            var linkIndex      = ylinks.links.channels.findIndex( l => l.id == ylinks.subscriptions[i].id );
+            var cpHistoryIndex = ylinks.copyHistory.channels.findIndex( c => c.id == ylinks.subscriptions[i].id );
+
+            $.each(data.items, function(i, videoEntry){
+                
+                if( ylinks.copyHistory.channels[cpHistoryIndex].videoLinks.indexOf(videoEntry.id.videoId) === -1
+                   && ylinks.links.channels[linkIndex].videoLinks.indexOf(videoEntry.id.videoId) === -1
+                   && videoEntry.snippet.liveBroadcastContent != 'live' ){
+                    
+                    ylinks.links.channels[linkIndex].videoLinks.push(videoEntry.id.videoId);
+                }
+            });
         }
         
         //Next channel
@@ -398,52 +450,55 @@ function getVideos(ylinks, i, warnings, onComplete) {
 };
 
 
-
-function resetHistorySub(channelID){
+function resetHistory(id, type){
     
-    var copyHistoryIndex;
+    var cpHistIndex;
+    var cpHistField;
     
-    chrome.storage.getYLinks(function(ylinks){
-       
-        if(!ylinks || !ylinks.copyHistory){
+    getYLinks(function(ylinks){
+        
+        if(type === CONTENT_TYPE_CHANNEL){
+            cpHistField = ylinks.copyHistory.channels;
+        }else if(type === CONTENT_TYPE_PLAYLIST){
+            cpHistField = ylinks.copyHistory.playlists;
+        }
+        
+        cpHistIndex = cpHistField.findIndex( c => c.id === id );
+        
+        if(cpHistIndex === -1){
             console.error('Resetting Copy History failed.');
             return;
         }
         
-        copyHistoryIndex = ylinks.copyHistory.findIndex(c => c.channelID == channelID);
+        cpHistField[cpHistIndex].videoLinks = [];
         
-        if(copyHistoryIndex < 0){
-            console.error('Resetting Copy History failed.');
-            return;
-        }
-        
-        ylinks.copyHistory[copyHistoryIndex].videoLinks = [];
-        
-        chrome.storage.updateYLinks(ylinks, function(retcode){
-            if(retcode != 0){
-                console.error('Resetting Copy History failed.');
-            }else{
-                scan(function(links){
-                    adjustClipboardButtons(links);
-                });     
-            }
+        updateYLinks(ylinks, function(){
+            scan(function(links){
+                adjustClipboardButtons(links);
+            }); 
         });
     });
 }
 
 function openChannel(channelID){
     
-    var youtubeURL = 'http://www.youtube.com/channel/' + channelID;
-    
-    chrome.tabs.create({'url': youtubeURL}, function(){
-        
-    });
-}
-  
-function getSubByID(subscriptions, id){
-    return subscriptions.find( sub => sub.id === id );
+    createTab('http://www.youtube.com/channel/' + channelID);
 }
 
-function subsContain(subscriptions, id){
-    return getSubByID(subscriptions, id) != undefined;
+function openPlaylist(playlistID){
+    
+    createTab('http://www.youtube.com/playlist?list=' + playlistID);
+}
+
+function createTab(url){
+    
+    chrome.tabs.create({'url': url}, function(){});
+}
+  
+function getSubByID(subs, id){
+    return subs.find( s => s.id === id );
+}
+
+function subsContain(subs, id){
+    return getSubByID(subs, id) != undefined;
 }
