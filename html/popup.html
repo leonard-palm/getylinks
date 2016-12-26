@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta content='text/html; charset=UTF-8' http-equiv='content-type'>
+    
+    <link href='../style/popup.css' type = 'text/css' rel = 'stylesheet'>
+    <link href='https://fonts.googleapis.com/icon?family=Material+Icons' rel='stylesheet'>
+    
+    <script src='https://ajax.googleapis.com/ajax/libs/jquery/1.12.0/jquery.min.js'></script>
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+    <script src='../src/storage.js'></script>
+    <script src='../src/popup.js'></script>
+    <script src='../src/ylinks.js'></script>
+    <script src='https://apis.google.com/js/client.js?onload=init'></script>
+      
+    <title>Popup</title>
+  </head>
+    
+  <body>
+      
+    <input type='text' id='linkContainer'>
+
+    <ul class = 'container' id='actionContainer'>
+        
+        <li class='action' id='toggleAdd'>
+            <i class="material-icons md-18 red">subscriptions</i>
+            <a style='margin-left: 4px;'>Add Channel / Playlist</a>
+        </li>
+        
+        <li class = 'action' id='rescan'>
+            <i class='material-icons md-18'>refresh</i>
+            <a style='margin-left: 4px'>Rescan</a>
+        </li>
+        
+        <li class = 'action' id='closePopup'>
+            <i class='material-icons md-18'>clear</i>
+        </li>
+    </ul>
+      
+    <div id='offline'>
+        <a>You are offline</a>
+        <img src='../graphics/offline.png'>
+    </div>
+      
+    <ul class = 'container' id ='subscriptionContainer'>
+        
+        <li class = 'item' id = 'enterLink'>
+            <ul class = 'containersub'>
+                <li class = 'itemsub' id='dummyThumbnail'>
+                    <i class="material-icons md-36 red">account_circle</i>
+                </li>
+                <li class='itemsub' id='linkInputContainer'>
+                    <input type='text' id='linkInput' placeholder="channel or playlist link">
+                </li>
+                <li class='itemsub' id='buttonAddContainer'>
+                    <i class='material-icons md-36 red'>playlist_add</i>
+                </li>
+            </ul>         
+        </li>
+        
+    </ul>
+
+  </body>
+</html>
