@@ -108,28 +108,29 @@ function displaySubscriptions(onFinish){
 function insertChannel(newChannel, onInserted){
     
     const TOGGLE_DURATION = 500;
+    var channelElement;
     
     //GET HTML content for one subscription item
     $.get('../html/subChannel.html', function(subChannelHTML){
 
         //Parse HTML-String into JQuery-Object
-        subElement = $(subChannelHTML);
+        channelElement = $(subChannelHTML);
 
         //Personalize the subscription item
-        subElement.attr('id', newChannel.id);
-        subElement.attr('type', newChannel.type);
-        subElement.find('img').attr('src', newChannel.info.thumbnail);
-        subElement.find('a.subTitle').text(newChannel.info.title);
-        subElement.find('a.count:first').text(newChannel.statistics.subscriberCount);
-        subElement.find('a.count:last').text(newChannel.statistics.videoCount);
+        channelElement.attr('id', newChannel.id);
+        channelElement.attr('type', newChannel.type);
+        channelElement.find('img').attr('src', newChannel.info.thumbnail);
+        channelElement.find('a.subTitle').text(newChannel.info.title);
+        channelElement.find('a.count:first').text(newChannel.statistics.subscriberCount);
+        channelElement.find('a.count:last').text(newChannel.statistics.videoCount);
 
-        assignListenersToSubElement(subElement); 
+        assignListenersToSubElement(channelElement); 
 
-        subElement.insertAfter( $("li#enterLink") );
+        channelElement.insertAfter( $("li#enterLink") );
 
-        subElement.slideToggle(TOGGLE_DURATION, function(){
+        channelElement.slideToggle(TOGGLE_DURATION, function(){
             
-            console.log('Displayed channel [ID:' + $(this).attr("id") + '] successfully.');
+            console.log('Inserted channel (ID:' + $(this).attr("id") + ') successfully.');
             animatePulse('green', $(this));
             onInserted();
         }); 
@@ -139,7 +140,32 @@ function insertChannel(newChannel, onInserted){
 
 function insertPlaylist(newPlaylist, onInserted){
     
-    onInserted();
+    const TOGGLE_DURATION = 500;
+    var playlistElement;
+    
+    //GET HTML content for one subscription item
+    $.get('../html/subChannel.html', function(subChannelHTML){
+
+        //Parse HTML-String into JQuery-Object
+        playlistElement = $(subChannelHTML);
+
+        //Personalize the subscription item
+        playlistElement.attr('id', newPlaylist.id);
+        playlistElement.attr('type', newPlaylist.type);
+        playlistElement.find('img').attr('src', newPlaylist.info.thumbnail);
+        playlistElement.find('a.subTitle').text(newPlaylist.info.title);
+
+        assignListenersToSubElement(playlistElement); 
+
+        playlistElement.insertAfter( $("li#enterLink") );
+
+        playlistElement.slideToggle(TOGGLE_DURATION, function(){
+            
+            console.log('Inserted playlist (ID:' + $(this).attr("id") + ') successfully.');
+            animatePulse('green', $(this));
+            onInserted();
+        }); 
+    });
 }
 
 function assignListenersToSubElement(element){

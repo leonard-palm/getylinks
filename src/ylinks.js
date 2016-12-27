@@ -2,6 +2,8 @@
 const API_KEY              = "AIzaSyCkR8GNk7w464UkHX9afFc412bTn1uC0Jo";
 const CHANNEL_TYPE_CHANNEL = 'CHANNEL';
 const CHANNEL_TYPE_USER    = 'USER';
+const GAPI_PART_SNIPPET    = 'snippet';
+const GAPI_PART_STATISTICS = 'statistics';
 
 function init(){
     
@@ -18,6 +20,8 @@ function init(){
     gapi.client.load("youtube", "v3", function(){
         
         initStorage(function(){
+            
+            updateSubInfos();
             
             updateChannelInfos(function(){
                 
@@ -145,7 +149,7 @@ function addChannel(channelName, channelType){
 
 function addPlaylist(playlistID){
     
-    var newSub;
+    var newPlaylist;
     
     if( playlistID.length === 0 ){
         animatePulse('red', $('li#enterLink'));
@@ -157,11 +161,11 @@ function addPlaylist(playlistID){
        
         getPlaylistInfos(playlistID, function(info){
             
-            newSub = { 'id'        : playlistID,
-                       'type'      : CONTENT_TYPE_PLAYLIST,
-                       'info'      : info };
+            newPlaylist = { 'id'   : playlistID,
+                            'type' : CONTENT_TYPE_PLAYLIST,
+                            'info' : info };
             
-            ylinks.subscriptions.push(newSub);
+            ylinks.subscriptions.push(newPlaylist);
             
             updateYLinks(ylinks, function(){
                 
@@ -169,10 +173,12 @@ function addPlaylist(playlistID){
 
                 removeDummySub();
                 toggleadd(function(){
-                    insertNewSub(newSub, function(){
+                    insertPlaylist(newPlaylist, function(){
+                        /*
                         scan(function(links){
                             adjustClipboardButtons(links);
-                        });     
+                        });   
+                        */
                     }); 
                 });
                 
@@ -216,17 +222,67 @@ function removePlaylist(playlistID){
     
 }
 
+function updateSubInfos(){
+    
+    var $deferred;
+    var deffereds = [];
+    
+    getYLinks(function(ylinks){
+        
+        $.each(ylinks.subscriptions, function(i, sub){
+            
+            $deferred = $.Deferred();
+        
+            if(sub.type === CONTENT_TYPE_CHANNEL){
+
+                deffereds.push( getChannelInfos(sub.id, CHANNEL_TYPE_CHANNEL, function(newID, info, stats){
+                    
+                    console.log(i);
+
+                    sub.info = info;
+                    sub.statistics = stats;
+                    
+                    console.log('changed channel info!!');
+                    
+                    return $.Deferred().promise();
+
+                }) );
+
+            }else if(sub.type === CONTENT_TYPE_PLAYLIST){
+
+                getPlaylistInfos(sub.id, function(info){
+
+                    sub.info = info;
+                    
+                    console.log('changed playlist info!!');
+
+                    deffereds.push($deferred);
+                    $deferred.resolve();
+                });
+            }
+        });
+        
+        $.when.apply(this, deffereds).done(function(){
+            console.log("FI");
+        })
+        
+    });
+    
+    
+}
+
 function getChannelInfos(channelID, channelType, onInfoGET){
     
-    var infoRequest;
+    var infoRequest, itemSnippet, itemStatistics;
     const GAPI_URL_CHANNELS = 'https://www.googleapis.com/youtube/v3/channels';
     var snippetGET, statisticsGET;
     var snippetParams = {};
     var statisticsParams = {};
+    var info, statistics;
     
     if(channelID.length === 0 || channelType.length === 0){
         
-        console.error('GET channelInfo failed (ID:'+channelID+').');
+        console.error('GET channelinfo failed (ID:'+channelID+').');
         onInfoGET(undefined, undefined, undefined);
         return;
     }
@@ -242,8 +298,8 @@ function getChannelInfos(channelID, channelType, onInfoGET){
         statisticsParams['forUsername'] = channelID;
     }
     
-    snippetParams['part']    = 'snippet';
-    statisticsParams['part'] = 'statistics';
+    snippetParams['part']    = GAPI_PART_SNIPPET;
+    statisticsParams['part'] = GAPI_PART_STATISTICS;
     statisticsParams['key']  = API_KEY;
     snippetParams['key']     = API_KEY;
     
@@ -254,12 +310,15 @@ function getChannelInfos(channelID, channelType, onInfoGET){
 
         console.log('GET channelInfo was successfull (ID:'+channelID+').');
         
-        var info = {'title'    : dataSnippet[0].items[0].snippet.title,
-                    'thumbnail': dataSnippet[0].items[0].snippet.thumbnails.default.url};
+        itemSnippet = dataSnippet[0].items[0].snippet;
+        itemStatistics = dataStatistics[0].items[0].statistics;
         
-        var statistics = {'subscriberCount': dataStatistics[0].items[0].statistics.subscriberCount,
-                          'videoCount'     : dataStatistics[0].items[0].statistics.videoCount,
-                          'viewCount'      : dataStatistics[0].items[0].statistics.viewCount}
+        info = { 'title'    : itemSnippet.title,
+                 'thumbnail': itemSnippet.thumbnails.default.url };
+        
+        statistics = { 'subscriberCount': itemStatistics.subscriberCount,
+                       'videoCount'     : itemStatistics.videoCount,
+                       'viewCount'      : itemStatistics.viewCount };
         
         onInfoGET(dataSnippet[0].items[0].id, info, statistics);
         
@@ -367,7 +426,7 @@ function getPlaylistInfos(playlistID, onInfoGET){
     infoRequest = gapi.client.request({
         'path':   GAPI_URL_PLAYLISTS,
         'params': {
-          'part': 'snippet',
+          'part': GAPI_PART_SNIPPET,
           'id'  : playlistID
         }
     });
@@ -383,9 +442,9 @@ function getPlaylistInfos(playlistID, onInfoGET){
         
         playlistSnippet = data.items[0].snippet;
         
-        playlistInfo = { 'title'       : snippet.title,
-                         'channelTitle': snippet.channelTitle,
-                         'thumbnail'   : snippet.thumbnails.default.url };
+        playlistInfo = { 'title'       : playlistSnippet.title,
+                         'channelTitle': playlistSnippet.channelTitle,
+                         'thumbnail'   : playlistSnippet.thumbnails.default.url };
         
         onInfoGET(playlistInfo);
     });
