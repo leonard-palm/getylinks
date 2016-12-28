@@ -24,7 +24,7 @@ $(document).ready(function(){
            return $(this).attr('id') != 'enterLink'; 
         });
         
-        subElements.toggle(500, function(){
+        subElements.slideToggle(500, function(){
             console.log('Displayed sub [ID:' + $(this).attr("id") + '] successfully.');
         }); 
         
@@ -77,6 +77,8 @@ function displaySubscriptions(onFinish){
                     playlistElement.attr('type', subEntry.type);
                     playlistElement.find('img').attr('src', subEntry.info.thumbnail);
                     playlistElement.find('a.subTitle').text(subEntry.info.title);
+                    
+                    assignListenersToSubElement(channelElement); 
                     
                     subElements = subElements.add(playlistElement);
                 }
@@ -182,7 +184,7 @@ function assignListenersToSubElement(element){
     $(element).find('div.subAction#removeSub').click(function(){
         
         var item = $(this).parents('li.item');
-        removeSub(item.attr('id'), item.attr('type'));
+        removeSub(item.attr('id'), item.attr('type'), true);
     });
     
     $(element).find('div.subAction#resetHistorySub').click(function(){
@@ -205,9 +207,9 @@ function assignListenersToSubElement(element){
     });
 }
 
-function removeOldSub(channelID, onFinish){
+function removeOldSub(sublID, onFinish){
     
-    var oldSub = $("li[id = '"+channelID+"']");
+    var oldSub = $("li[id = '"+sublID+"']");
     
     oldSub.slideToggle(300, function(){
         oldSub.remove();
@@ -217,6 +219,8 @@ function removeOldSub(channelID, onFinish){
 
 function insertDummySub(onFinish){
     
+    const ANIMATION_DURATION = 300;
+    
     $("ul#subscriptionContainer").append( $('<li/>',{
         text    : 'No Subscriptions',
         'class' : 'item',
@@ -224,7 +228,8 @@ function insertDummySub(onFinish){
         'style' : 'display:none;'
     })); 
     
-    $("li#dummySubscription").slideToggle(300, function(){
+    $("li#dummySubscription").slideToggle(ANIMATION_DURATION, function(){
+        console.log('Inserted dummy sub successfully.');
         onFinish();
     });
 }
@@ -278,15 +283,6 @@ function animatePulse(color, element){
     setTimeout(function(){
         element.removeClass(className);
     }, 1000);
-}
-
-function removeSub(id, type){
-    
-    if(type === CONTENT_TYPE_CHANNEL){
-        removeChannel(id);
-    }else if(type === CONTENT_TYPE_PLAYLIST){
-        removePlaylist(id);
-    }
 }
 
 function copyToClipboard(id, type){

@@ -16,11 +16,11 @@ function initStorage(onCompleteInit){
     
     chrome.storage.sync.get('ylinks', function(data){
 
-        if(!data.ylinks){
+        if( !data.ylinks ){
             
             chrome.storage.sync.set( { 'ylinks': initialStorage.ylinks }, function(){
-                if(!chrome.runtime.lastError){
-                    console.log('Initialization of storage finished successfully.');
+                if( !chrome.runtime.lastError ){
+                    console.log('Initialized storage finished successfully.');
                     onCompleteInit();
                 }else{
                     console.error('Initialization of storage failed.');
@@ -29,7 +29,7 @@ function initStorage(onCompleteInit){
         }else{
             
             adjustStorage(data.ylinks, function(){
-                console.log('Initialization of storage finished successfully.');
+                console.log('Initialized storage finished successfully.');
                 onCompleteInit();
             });
         } 
