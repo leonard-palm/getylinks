@@ -70,7 +70,6 @@ function addContent(link){
     const userIdent     = '/user/';
     const playlistIdent = '/playlist?list=';
     
-    
     if(link.match(channelMatcher)){
         
         addChannel( extractIdentValue(link, channelIdent), CHANNEL_TYPE_CHANNEL );
@@ -129,15 +128,13 @@ function addChannel(channelName, channelType){
             adjustStorage(ylinks, function(){
                     
                 console.log('Added channel successfully (ID:'+channelID+').');
-
-                removeDummySub();
-                
-                toggleadd(function(){
                     
+                toggleAddContainer(function(){
+
                     insertChannel(newChannel, function(){
-                        
+
                         scan(function(links){
-                            
+
                             adjustClipboardButtons(links);
                         });     
                     }); 
@@ -171,10 +168,8 @@ function addPlaylist(playlistID){
             adjustStorage(ylinks, function(){
                 
                 console.log('Added playlist successfully (ID:'+playlistID+').');
-
-                removeDummySub();
                 
-                toggleadd(function(){
+                toggleAddContainer(function(){
                     
                     insertPlaylist(newPlaylist, function(){
                         
@@ -201,11 +196,7 @@ function removeSub(subID, frontend){
             
             console.log('Subscription removed successfully (ID:'+subID+').');
             
-            if(frontend){
-                removeOldSub(subID, function(){
-                    if(ylinks.subscriptions.length === 0) insertDummySub(function(){});
-                });
-            }
+            if( frontend ) removeOldSub(subID);
         });
     });
 }
@@ -345,37 +336,53 @@ function getChannelInfos(channelID, channelType, onInfoGET){
 
 
 function getPlaylistInfos(playlistID, onInfoGET){
-
-    const GAPI_URL_PLAYLISTS = 'https://www.googleapis.com/youtube/v3/playlists';
-    var infoRequest, playlistSnippet, playlistInfo;
     
-    infoRequest = gapi.client.request({
-        'path':   GAPI_URL_PLAYLISTS,
-        'params': {
-          'part': GAPI_PART_SNIPPET,
-          'id'  : playlistID
-        }
-    });
+    var playlistInfo;
+    var snippetRequest, contentDetailsRequest;
+    var snippet, contentDetails;
     
-    infoRequest.execute(function(data){
+    snippetRequest        = getPlaylistSnippetRequest(playlistID, GAPI_PART_SNIPPET);
+    contentDetailsRequest = getPlaylistSnippetRequest(playlistID, GAPI_PART_CONTENT_DETAILS);
+    
+    $.when(snippetRequest, contentDetailsRequest).then(function(snippetData, contentDetailsData){
         
         //Got Error
-        if(data.error || !data.items || !data.items[0]){
+        if( snippetData[0].error || snippetData[0].pageInfo.totalResults === 0 ){
             console.error('GET playlist info failed at '+playlistID+'.');
             animatePulse('red', $('li#enterLink'));
             onInfoGET(undefined);
             return;
         }
         
-        playlistSnippet = data.items[0].snippet;
+        snippet        = snippetData[0].items[0].snippet;
+        contentDetails = contentDetailsData[0].items[0].contentDetails;
         
-        playlistInfo = { 'title'       : playlistSnippet.title,
-                         'channelTitle': playlistSnippet.channelTitle,
-                         'thumbnail'   : playlistSnippet.thumbnails.default.url };
+        playlistInfo = { 'title'       : snippet.title,
+                         'channelTitle': snippet.channelTitle,
+                         'itemCount'   : contentDetails.itemCount,
+                         'thumbnail'   : snippet.thumbnails.medium.url };
         
         onInfoGET(playlistInfo);
     });
+}
+
+function getPlaylistSnippetRequest(playlistID, part){
+
+    const GAPI_URL_PLAYLISTS = 'https://www.googleapis.com/youtube/v3/playlists';
     
+    var params = {};
+    
+    params['key']  = API_KEY;
+    params['part'] = part;
+    params['id']   = playlistID;
+    
+    return $.get(GAPI_URL_PLAYLISTS, params).fail(getInfosFail); 
+}
+
+var getInfosFail = function(data){
+    
+    console.error('Fatal error during info reading:');
+    console.error(data.responseJSON);
 }
 
 function getSubVideos(ylinks, onAllVideosGET){

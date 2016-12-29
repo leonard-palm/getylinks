@@ -4,7 +4,7 @@ $(document).ready(function(){
     
         // Set Listener's
         $('li#toggleAdd').click(function(){
-            toggleadd(function(){});
+            toggleAddContainer(function(){});
         });
 
         $('li#buttonAddContainer').click(function(){
@@ -41,7 +41,7 @@ function displaySubscriptions(onFinish){
     getYLinks(function(ylinks){
         
         if(ylinks.subscriptions.length === 0){
-            insertDummySub(function(){
+            toggleDummySub(function(){
                 return; 
             });
         }
@@ -53,18 +53,14 @@ function displaySubscriptions(onFinish){
             
             $.each(ylinks.subscriptions, function(i, subEntry){
                 
+                //Parse HTML-String into JQuery-Object
                 channelElement = $(subChannelHTML[0]);
                 playlistElement = $(subPlaylistHTML[0]);
                
                 if( subEntry.type === CONTENT_TYPE_CHANNEL && subChannelHTML[1] === 'success' ){
                     
-                    //Personalize the channel item
-                    channelElement.attr('id', subEntry.id);
-                    channelElement.attr('type', subEntry.type);
-                    channelElement.find('img').attr('src', subEntry.info.thumbnail);
-                    channelElement.find('a.subTitle').text(subEntry.info.title);
-                    channelElement.find('a.count:first').text(subEntry.statistics.subscriberCount);
-                    channelElement.find('a.count:last').text(subEntry.statistics.videoCount);
+                    //Add custom variables (title, thumbnail, etc.)
+                    channelElement = personalizeChannelElement(channelElement, subEntry);
 
                     assignListenersToSubElement(channelElement); 
                     
@@ -72,13 +68,10 @@ function displaySubscriptions(onFinish){
                     
                 }else if( subEntry.type === CONTENT_TYPE_PLAYLIST && subPlaylistHTML[1] === 'success' ){
                     
-                    //Personalize the playlist item
-                    playlistElement.attr('id', subEntry.id);
-                    playlistElement.attr('type', subEntry.type);
-                    playlistElement.find('img').attr('src', subEntry.info.thumbnail);
-                    playlistElement.find('a.subTitle').text(subEntry.info.title);
+                    //Add custom variables (title, thumbnail, etc.)
+                    playlistElement = personalizePlaylistElement(playlistElement, subEntry);
                     
-                    assignListenersToSubElement(channelElement); 
+                    assignListenersToSubElement(playlistElement); 
                     
                     subElements = subElements.add(playlistElement);
                 }
@@ -106,7 +99,6 @@ function displaySubscriptions(onFinish){
 }
 
 
-
 function insertChannel(newChannel, onInserted){
     
     const TOGGLE_DURATION = 500;
@@ -118,13 +110,8 @@ function insertChannel(newChannel, onInserted){
         //Parse HTML-String into JQuery-Object
         channelElement = $(subChannelHTML);
 
-        //Personalize the subscription item
-        channelElement.attr('id', newChannel.id);
-        channelElement.attr('type', newChannel.type);
-        channelElement.find('img').attr('src', newChannel.info.thumbnail);
-        channelElement.find('a.subTitle').text(newChannel.info.title);
-        channelElement.find('a.count:first').text(newChannel.statistics.subscriberCount);
-        channelElement.find('a.count:last').text(newChannel.statistics.videoCount);
+        //Add custom variables (title, thumbnail, etc.)
+        channelElement = personalizeChannelElement(channelElement, newChannel);
 
         assignListenersToSubElement(channelElement); 
 
@@ -146,17 +133,14 @@ function insertPlaylist(newPlaylist, onInserted){
     var playlistElement;
     
     //GET HTML content for one subscription item
-    $.get('../html/subChannel.html', function(subChannelHTML){
+    $.get('../html/subPlaylist.html', function(subPlaylistHTML){
 
         //Parse HTML-String into JQuery-Object
-        playlistElement = $(subChannelHTML);
+        playlistElement = $(subPlaylistHTML);
 
-        //Personalize the subscription item
-        playlistElement.attr('id', newPlaylist.id);
-        playlistElement.attr('type', newPlaylist.type);
-        playlistElement.find('img').attr('src', newPlaylist.info.thumbnail);
-        playlistElement.find('a.subTitle').text(newPlaylist.info.title);
-
+        //Add custom variables (title, thumbnail, etc.)
+        playlistElement = personalizePlaylistElement(playlistElement, newPlaylist);
+        
         assignListenersToSubElement(playlistElement); 
 
         playlistElement.insertAfter( $("li#enterLink") );
@@ -168,6 +152,31 @@ function insertPlaylist(newPlaylist, onInserted){
             onInserted();
         }); 
     });
+}
+
+function personalizeChannelElement(channelElement, channel){
+    
+    channelElement.attr('id', channel.id);
+    channelElement.attr('type', channel.type);
+    channelElement.find('img').attr('src', channel.info.thumbnail);
+    channelElement.find('a.subTitle').text(channel.info.title);
+    channelElement.find('a.count:first').text(channel.statistics.subscriberCount);
+    channelElement.find('a.count:last').text(channel.statistics.videoCount);
+    
+    return channelElement;
+}
+
+function personalizePlaylistElement(playlistElement, playlist){
+    
+    playlistElement.attr('id', playlist.id);
+    playlistElement.attr('type', playlist.type);
+    playlistElement.find('img').attr('src', playlist.info.thumbnail);
+    playlistElement.find('a.subTitle').text(playlist.info.title);
+    playlistElement.find('a.count:first').text( playlist.info.itemCount );
+    playlistElement.find('a.count:last').text( playlist.info.channelTitle );
+    
+    return playlistElement;
+    
 }
 
 function assignListenersToSubElement(element){
@@ -193,7 +202,7 @@ function assignListenersToSubElement(element){
         resetHistory(item.attr('id'), item.attr('type'));  
     });
     
-    $(element).find('li.channelThumbnail, a.channelTitle').click(function(){
+    $(element).find('li.channelThumbnail, a.channelTitle, li.playlistThumbnail, a.subTitle').click(function(){
         
         var item = $(this).parents('li.item');
         var id = item.attr('id');
@@ -207,61 +216,72 @@ function assignListenersToSubElement(element){
     });
 }
 
-function removeOldSub(sublID, onFinish){
-    
-    var oldSub = $("li[id = '"+sublID+"']");
-    
-    oldSub.slideToggle(300, function(){
-        oldSub.remove();
-        onFinish();
-    });
-}
-
-function insertDummySub(onFinish){
+function removeOldSub(sublID){
     
     const ANIMATION_DURATION = 300;
     
-    $("ul#subscriptionContainer").append( $('<li/>',{
-        text    : 'No Subscriptions',
-        'class' : 'item',
-        'id'    : 'dummySubscription',
-        'style' : 'display:none;'
-    })); 
+    var oldSub = $("li[id = '"+sublID+"']");
     
-    $("li#dummySubscription").slideToggle(ANIMATION_DURATION, function(){
-        console.log('Inserted dummy sub successfully.');
-        onFinish();
+    oldSub.slideToggle(ANIMATION_DURATION, function(){
+        
+        oldSub.remove();
+        
+        if( !$('li.item#enterLink').is(':visible') && $('ul.container#subscriptionContainer').children().length === 1 ){
+            toggleDummySub(function(){});
+        }
     });
 }
 
-function removeDummySub(){
+function toggleDummySub(onFinish){
     
-    var dummySub = $('li#dummySubscription');
+    const ANIMATION_DURATION = 400;
     
-    if(dummySub != undefined){
-        dummySub.slideToggle(500, function(){
-            dummySub.remove();
-        });
-    }
+    $("div#dummySubscriptionWrapper").slideToggle(ANIMATION_DURATION, function(){ 
+        onFinish(); 
+    });
 }
 
-function toggleadd(onFinish){
+function toggleAddContainer(onFinish){
     
     var $buttonadd = $('li#toggleAdd');
     var $enterLink = $('li#enterLink');
     
-    if( $enterLink.css('display') == 'none' ){
-        $buttonadd.find('a').text('Cancel');
-        $buttonadd.find('i.material-icons').text('remove_circle');
+    if( $('div#dummySubscriptionWrapper').is(':visible') ){
+                
+        toggleDummySub(function(){
+           
+            if( $enterLink.css('display') == 'none' ){
+                $buttonadd.find('a').text('Cancel');
+                $buttonadd.find('i.material-icons').text('remove_circle');
+            }else{
+                $buttonadd.find('a').text('Add Channel / Playlist');
+                $buttonadd.find('i.material-icons').text('subscriptions');
+            }
+
+            $enterLink.slideToggle(300, function(){
+                $('input#linkInput').val('');
+                onFinish();
+            });
+            
+        });
+        
     }else{
-        $buttonadd.find('a').text('Add Channel / Playlist');
-        $buttonadd.find('i.material-icons').text('subscriptions');
+        
+        if( $enterLink.css('display') == 'none' ){
+            $buttonadd.find('a').text('Cancel');
+            $buttonadd.find('i.material-icons').text('remove_circle');
+        }else{
+            $buttonadd.find('a').text('Add Channel / Playlist');
+            $buttonadd.find('i.material-icons').text('subscriptions');
+        }
+
+        $enterLink.slideToggle(300, function(){
+            $('input#linkInput').val('');
+            onFinish();
+        });
+        
     }
     
-    $enterLink.slideToggle(300, function(){
-        $('input#linkInput').val('');
-        onFinish();
-    });
 }
 
 function animatePulse(color, element){
@@ -370,7 +390,7 @@ function adjustClipboardButtons(links){
 var itemHoverIn = function(){
     
     $(this).css('background-color', '#f2f2f2');
-    $(this).find('li.subDescription').css('background-color', '#f2f2f2');
+    $(this).find('li.description').css('background-color', '#f2f2f2');
     $(this).find('div.subAction').css('background-color', '#f2f2f2');
     $(this).find('div.subActionContainer').css('display', 'flex');
 }
@@ -378,7 +398,7 @@ var itemHoverIn = function(){
 var itemHoverOut = function(){
     
     $(this).css('background-color', '#fff');
-    $(this).find('li.subDescription').css('background-color', '#fff');
+    $(this).find('li.description').css('background-color', '#fff');
     $(this).find('div.subAction').css('background-color', '#fff');
     $(this).find('div.subActionContainer').css('display', 'none');
 }
