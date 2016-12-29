@@ -305,32 +305,25 @@ function animatePulse(color, element){
     }, 1000);
 }
 
-function copyToClipboard(id, type){
+function copyToClipboard(subID, type){
     
-    var linksField, cpHistField, linksIndex, cpHistIndex;
+    var linksIndex, cpHistIndex;
     
     var linkContainer = $('input#linkContainer');
     
     getYLinks(function(ylinks){
         
-        if(type === CONTENT_TYPE_CHANNEL){
-            linksField = ylinks.links.channels;
-            cpHistField = ylinks.copyHistory.channels;
-        }else if(type === CONTENT_TYPE_PLAYLIST){
-            linksField = ylinks.links.playlists;
-            cpHistField = ylinks.copyHistory.playlists;
-        }
-        
-        linksIndex  = linksField.findIndex( l => l.id === id );
-        cpHistIndex = cpHistField.findIndex( cH => cH.id === id );
+        linksIndex  = ylinks.links.findIndex( l => l.id === subID );
+        cpHistIndex = ylinks.copyHistory.findIndex( cH => cH.id === subID );
         
         //Fill invisible textfiled with link's seperated by space
-        $.each(linksField[linksIndex].videoLinks, function(i, link){
+        $.each(ylinks.links[linksIndex].videoLinks, function(i, link){
+            
             linkContainer.val(linkContainer.val() + 'www.youtube.com/watch?v=' + link + ' ');
-            cpHistField[cpHistIndex].videoLinks.push(link);
+            ylinks.copyHistory[cpHistIndex].videoLinks.push(link);
         });
         
-        linksField[linksIndex].videoLinks = [];
+        ylinks.links[linksIndex].videoLinks = [];
         
         //Copy content from invisible textfield to clipboard
         linkContainer.select();
@@ -349,41 +342,37 @@ function adjustClipboardButtons(links){
     var clipboardButton, clipboardIcon;
     var linkAmount;
     const ANIMATION_DURATION = 1000;
-    
-    $.each(links, function(key, linksField){
         
-        $.each(linksField, function(i, linkEntry){
-            
-            linkAmount      = linkEntry.videoLinks.length;
-            clipboardButton = $("li[id = '"+linkEntry.id+"']").find('li.buttonClipboard');
-            clipboardIcon   = clipboardButton.find('i.material-icons');
+    $.each(links, function(i, linkEntry){
 
-            if(clipboardIcon || clipboardIcon.length === 1){
+        linkAmount      = linkEntry.videoLinks.length;
+        clipboardButton = $("li[id = '"+linkEntry.id+"']").find('li.buttonClipboard');
+        clipboardIcon   = clipboardButton.find('i.material-icons');
 
-                if(linkAmount === 0){
+        if(clipboardIcon || clipboardIcon.length === 1){
 
-                    clipboardIcon.text('filter_none');
-                    clipboardButton.css('cursor', 'default');
-                    clipboardButton.animate({ backgroundColor: "#a3a3a3" }, ANIMATION_DURATION );
-                    clipboardIcon.animate({ color: '#e62117' }, ANIMATION_DURATION);
+            if(linkAmount === 0){
 
-                }else if(linkAmount > 9){
+                clipboardIcon.text('filter_none');
+                clipboardButton.css('cursor', 'default');
+                clipboardButton.animate({ backgroundColor: "#a3a3a3" }, ANIMATION_DURATION );
+                clipboardIcon.animate({ color: '#e62117' }, ANIMATION_DURATION);
 
-                    clipboardIcon.text('filter_9_plus');
-                    clipboardButton.css('cursor', 'pointer');
-                    clipboardButton.animate({ backgroundColor: "#e62117" }, ANIMATION_DURATION );
-                    clipboardIcon.animate({ color: '#fff' }, ANIMATION_DURATION);
+            }else if(linkAmount > 9){
 
-                }else{
-                    clipboardIcon.text('filter_'+linkAmount);
-                    clipboardButton.css('cursor', 'pointer');
-                    clipboardButton.animate({ backgroundColor: "#e62117" }, ANIMATION_DURATION );
-                    clipboardIcon.animate({ color: '#fff' }, ANIMATION_DURATION);
-                }
+                clipboardIcon.text('filter_9_plus');
+                clipboardButton.css('cursor', 'pointer');
+                clipboardButton.animate({ backgroundColor: "#e62117" }, ANIMATION_DURATION );
+                clipboardIcon.animate({ color: '#fff' }, ANIMATION_DURATION);
+
+            }else{
+                clipboardIcon.text('filter_'+linkAmount);
+                clipboardButton.css('cursor', 'pointer');
+                clipboardButton.animate({ backgroundColor: "#e62117" }, ANIMATION_DURATION );
+                clipboardIcon.animate({ color: '#fff' }, ANIMATION_DURATION);
             }
-            
-        });
-        
+        }
+
     });
 }
 

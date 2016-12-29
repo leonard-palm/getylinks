@@ -62,25 +62,32 @@ function scan(onCompleteScan){
 
 function addContent(link){
     
-    const channelMatcher  = /www\.youtube\.com\/channel\//g;
-    const userMatcher     = /www\.youtube\.com\/user\//g
-    const playlistMatcher = /www\.youtube\.com\/playlist\?list=/g;
+    const channelMatcher       = /www\.youtube\.[\w]{2,3}\/channel\//g;
+    const userMatcher          = /www\.youtube\.[\w]{2,3}\/user\//g
+    const playlistMatcher      = /www\.youtube\.[\w]{2,3}\/playlist\?list=/g;
+    const playlistVideoMatcher = /www\.youtube\.[\w]{2,3}\/watch\?v=[\w]*\&list=[\w]*\&index=\d/g;
+    const videoMatcher         = /www\.youtube\.[\w]{2,3}\/watch\?v=/g;
     
     const channelIdent  = '/channel/';
     const userIdent     = '/user/';
     const playlistIdent = '/playlist?list=';
+    const videoIdent    = '/watch?v=';
     
-    if(link.match(channelMatcher)){
+    if( link.match(channelMatcher) ){
         
         addChannel( extractIdentValue(link, channelIdent), CHANNEL_TYPE_CHANNEL );
         
-    }else if(link.match(userMatcher)){
+    }else if( link.match(userMatcher) ){
         
         addChannel( extractIdentValue(link, userIdent), CHANNEL_TYPE_USER );
         
-    }else if(link.match(playlistMatcher)){
+    }else if( link.match(playlistMatcher) ){
         
         addPlaylist( extractIdentValue(link, playlistIdent) );
+    
+    }else if( link.match(videoMatcher) ){
+        
+        addChannelByVideo( extractIdentValue(link, videoIdent) );
         
     }else{
         
@@ -123,7 +130,7 @@ function addChannel(channelName, channelType){
                            'info'      : channelInfo, 
                            'statistics': channelStats };
             
-            ylinks.subscriptions.push(newChannel);
+            ylinks.subscriptions.unshift(newChannel);
             
             adjustStorage(ylinks, function(){
                     
@@ -141,6 +148,30 @@ function addChannel(channelName, channelType){
                 });
             }); 
         });
+    });
+}
+
+function addChannelByVideo(videoID){
+    
+    const GAPI_URL_VIDEOS = 'https://www.googleapis.com/youtube/v3/videos';
+    
+    $.get(GAPI_URL_VIDEOS, {
+        
+        'key' : API_KEY,
+        'part': GAPI_PART_SNIPPET,
+        'id'  : videoID
+        
+    }).done(function(videoData){
+        
+        console.out(videoData);
+        
+        if( videoData.error || videoData.pageInfo.totalResults === 0 ){
+            animatePulse('red', $('li#enterLink'));
+            console.error('Adding channel by video (ID:'+videoID+') failed');
+            return;
+        }
+        
+        addChannel( videoData.items[0].snippet.channelId, CHANNEL_TYPE_CHANNEL );
     });
 }
 
@@ -163,7 +194,7 @@ function addPlaylist(playlistID){
                             'valid': true,
                             'info' : info };
             
-            ylinks.subscriptions.push(newPlaylist);
+            ylinks.subscriptions.unshift(newPlaylist);
             
             adjustStorage(ylinks, function(){
                 
@@ -403,8 +434,7 @@ function getSubVideos(ylinks, onAllVideosGET){
         
         var argArray = $.makeArray(arguments);
         var requestData = [];
-        var linkField, linkIndex;
-        var cpHistField, cpHistIndex;
+        var linkIndex, cpHistIndex;
         
         if( Array.isArray(argArray[0]) ){
             
@@ -421,30 +451,25 @@ function getSubVideos(ylinks, onAllVideosGET){
             
             if( reqData.kind === 'youtube#searchListResponse' ){
                 
-                linkField   = ylinks.links.channels;
-                cpHistField = ylinks.copyHistory.channels;
-                linkIndex   = linkField.findIndex( l => l.id === reqData.items[0].snippet.channelId );
-                cpHistIndex = cpHistField.findIndex( l => l.id === reqData.items[0].snippet.channelId );
+                linkIndex   = ylinks.links.findIndex( l => l.id === reqData.items[0].snippet.channelId );
+                cpHistIndex = ylinks.copyHistory.findIndex( l => l.id === reqData.items[0].snippet.channelId );
                 
             }else if( reqData.kind === 'youtube#playlistItemListResponse' ){
                 
-                linkField   = ylinks.links.playlists;
-                cpHistField = ylinks.copyHistory.playlists;
-                linkIndex   = linkField.findIndex( l => l.id === reqData.items[0].snippet.playlistId );
-                cpHistIndex = cpHistField.findIndex( l => l.id === reqData.items[0].snippet.playlistId );
-                
+                linkIndex   = ylinks.links.findIndex( l => l.id === reqData.items[0].snippet.playlistId );
+                cpHistIndex = ylinks.copyHistory.findIndex( l => l.id === reqData.items[0].snippet.playlistId );
             }
             
-            linkField[linkIndex].videoLinks = $.map(reqData.items, function(item, i){
+            ylinks.links[linkIndex].videoLinks = $.map(reqData.items, function(item, i){
                 
                 if(item.kind === 'youtube#searchResult'){
-                    if( cpHistField[cpHistIndex].videoLinks.indexOf(item.id.videoId) === -1 ){
+                    if( ylinks.copyHistory[cpHistIndex].videoLinks.indexOf(item.id.videoId) === -1 ){
                         return item.id.videoId;                     //Type channel
                     }else{
                         return null;
                     }
                 }else if(item.kind === 'youtube#playlistItem'){
-                    if( cpHistField[cpHistIndex].videoLinks.indexOf(item.snippet.resourceId.videoId) === -1 ){
+                    if( ylinks.copyHistory[cpHistIndex].videoLinks.indexOf(item.snippet.resourceId.videoId) === -1 ){
                         return item.snippet.resourceId.videoId;     //Type playlist
                     }else{
                         return null;
@@ -495,86 +520,22 @@ var getVideosFail = function(data){
     console.error(data.responseJSON);
 }
 
-function getVideos(ylinks, i, warnings, onComplete) {
-    
-    const GAPI_URL_SEARCH = 'https://www.googleapis.com/youtube/v3/search';
-    var errorOccured = false;
-    
-    var requestVideos = gapi.client.request({
-        'path':   GAPI_URL_SEARCH,
-        'params': {
-          'part'      : 'snippet',
-          'channelId' : ylinks.subscriptions[i].id,
-          'maxResults': 10,
-          'type'      : 'video',
-          'order'     : 'date'
-        }
-    });
 
-    requestVideos.execute(function(data){
-        
-        //Got Error
-        if(data.error || !data.items){
-            console.error('GET videos at "'+ylinks.subscriptions[i].id+'" failed.');
-            errorOccured = true; 
-            warnings += 1;
-        }
-        
-        if(!errorOccured && data.items && data.items.length > 0){
-            
-            //Fill local links
-            var linkIndex      = ylinks.links.channels.findIndex( l => l.id == ylinks.subscriptions[i].id );
-            var cpHistoryIndex = ylinks.copyHistory.channels.findIndex( c => c.id == ylinks.subscriptions[i].id );
-
-            $.each(data.items, function(i, videoEntry){
-                
-                if( ylinks.copyHistory.channels[cpHistoryIndex].videoLinks.indexOf(videoEntry.id.videoId) === -1
-                   && ylinks.links.channels[linkIndex].videoLinks.indexOf(videoEntry.id.videoId) === -1
-                   && videoEntry.snippet.liveBroadcastContent != 'live' ){
-                    
-                    ylinks.links.channels[linkIndex].videoLinks.push(videoEntry.id.videoId);
-                }
-            });
-        }
-        
-        //Next channel
-        if( (i+1) < ylinks.subscriptions.length ){
-            getVideos(ylinks, (i+1), warnings, onComplete);
-        }else{
-            if(warnings > 0){
-                console.warn('GET videos finished with '+warnings+' warning(s).');
-            }else{
-                console.log('GET videos finished with no warnings.');
-            }
-            onComplete(warnings);
-        }
-    });
-    
-};
-
-
-function resetHistory(id, type){
+function resetHistory(subID, type){
     
     var cpHistIndex;
-    var cpHistField;
     var linkContainer;
     
     getYLinks(function(ylinks){
         
-        if(type === CONTENT_TYPE_CHANNEL){
-            cpHistField = ylinks.copyHistory.channels;
-        }else if(type === CONTENT_TYPE_PLAYLIST){
-            cpHistField = ylinks.copyHistory.playlists;
-        }
-        
-        cpHistIndex = cpHistField.findIndex( c => c.id === id );
+        cpHistIndex = ylinks.copyHistory.findIndex( c => c.id === subID );
         
         if(cpHistIndex === -1){
             console.error('Resetting Copy History failed.');
             return;
         }
         
-        cpHistField[cpHistIndex].videoLinks = [];
+        ylinks.copyHistory[cpHistIndex].videoLinks = [];
         
         linkContainer = $('input#linkContainer');
         linkContainer.val('; ')
