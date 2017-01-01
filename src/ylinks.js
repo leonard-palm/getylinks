@@ -62,32 +62,37 @@ function scan(onCompleteScan){
 
 function addContent(link){
     
-    const channelMatcher       = /www\.youtube\.[\w]{2,3}\/channel\//g;
-    const userMatcher          = /www\.youtube\.[\w]{2,3}\/user\//g
-    const playlistMatcher      = /www\.youtube\.[\w]{2,3}\/playlist\?list=/g;
-    const playlistVideoMatcher = /www\.youtube\.[\w]{2,3}\/watch\?v=[\w]*\&list=[\w]*\&index=\d/g;
-    const videoMatcher         = /www\.youtube\.[\w]{2,3}\/watch\?v=/g;
+    const channelMatcher       = /www\.youtube\.\w{2,3}\/channel\//g;
+    const userMatcher          = /www\.youtube\.\w{2,3}\/user\//g
+    const playlistMatcher      = /www\.youtube\.\w{2,3}\/playlist\?list=/g;
+    const playlistVideoMatcher = /www\.youtube\.\w{2,3}\/watch\?v=\w+(\&t=\d+s)?\&list=\w+/g;
+    const videoMatcher         = /www\.youtube\.\w{2,3}\/watch\?v=/g;
     
-    const channelIdent  = '/channel/';
-    const userIdent     = '/user/';
-    const playlistIdent = '/playlist?list=';
-    const videoIdent    = '/watch?v=';
+    const identChannel  = '/channel/';
+    const identUser     = '/user/';
+    const pNameVideo    = 'v';
+    const pNamePlaylist = 'list';
+    
     
     if( link.match(channelMatcher) ){
         
-        addChannel( extractIdentValue(link, channelIdent), CHANNEL_TYPE_CHANNEL );
+        //Add Channel by channel id
+        addChannel( extractIdentValue(link, identChannel), CHANNEL_TYPE_CHANNEL );
         
     }else if( link.match(userMatcher) ){
         
-        addChannel( extractIdentValue(link, userIdent), CHANNEL_TYPE_USER );
+        //Add channel by username
+        addChannel( extractIdentValue(link, identUser), CHANNEL_TYPE_USER );
         
-    }else if( link.match(playlistMatcher) ){
+    }else if( link.match(playlistMatcher) || link.match(playlistVideoMatcher) ){
         
-        addPlaylist( extractIdentValue(link, playlistIdent) );
+        //Add playlist by playlist id
+        addPlaylist( getParamValue(link, pNamePlaylist) );
     
     }else if( link.match(videoMatcher) ){
         
-        addChannelByVideo( extractIdentValue(link, videoIdent) );
+        //Add channel by video id
+        addChannelByVideo( getParamValue(link, pNameVideo) );
         
     }else{
         
@@ -97,9 +102,21 @@ function addContent(link){
     
 }
 
+function getParamValue(youtubeURL, paramName){
+    
+    if( !youtubeURL || youtubeURL.indexOf('?') === -1 ) return '';
+    
+    var searchParams = new URLSearchParams( youtubeURL.substring( youtubeURL.indexOf('?') + 1 ) );
+    
+    for( let p of searchParams ){
+        if( p[0] === paramName ) return p[1];
+    }
+    return '';
+}
+
 function extractIdentValue(link, ident){
     
-    if( link.indexOf(ident) === -1 ) return '';
+    if( !link || link.indexOf(ident) === -1 ) return '';
     var identVal = link.substr( link.indexOf(ident) + ident.length, link.length );
     return ( identVal.indexOf('/') != -1 ) ? identVal.substr( 0, identVal.indexOf('/') ) : identVal;
 }
@@ -187,12 +204,18 @@ function addPlaylist(playlistID){
     
     getYLinks(function(ylinks){
        
-        getPlaylistInfos(playlistID, function(info){
+        getPlaylistInfos(playlistID, function(playlistInfo){
+            
+            if(!playlistInfo || subsContain(ylinks.subscriptions, playlistID)){
+                animatePulse('red', $('li#enterLink'));
+                console.error('Adding playlist failed (ID:'+playlistID+').');
+                return;
+            }
             
             newPlaylist = { 'id'   : playlistID,
                             'type' : CONTENT_TYPE_PLAYLIST,
                             'valid': true,
-                            'info' : info };
+                            'info' : playlistInfo };
             
             ylinks.subscriptions.unshift(newPlaylist);
             
